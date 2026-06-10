@@ -1,15 +1,13 @@
 import mongoose from "mongoose";
-
-// Bypasses TypeScript's import() -> require() transformation in CommonJS
-const dynamicImport = new Function('specifier', 'return import(specifier)');
+import { betterAuth } from "better-auth";
+import { mongodbAdapter } from "better-auth/adapters/mongodb";
+import { organization } from "better-auth/plugins";
 
 let authInstance: any = null;
 
-export const getAuth = async () => {
-  if (authInstance) return authInstance;
+export const getAuth = async (): Promise<any> => {
 
-  const { betterAuth } = await dynamicImport("better-auth");
-  const { mongodbAdapter } = await dynamicImport("better-auth/adapters/mongodb");
+  if (authInstance) return authInstance;
 
   const client = mongoose.connection.getClient();
   const db = client.db();
@@ -23,13 +21,16 @@ export const getAuth = async () => {
     emailAndPassword: {
       enabled: true,
     },
+    plugins: [
+      organization({
+        allowMemberToInvite: false,
+      } as any)
+    ],
     trustedOrigins: [
       "http://localhost:3000", // Allow your React/Next.js frontend
       "http://localhost:5000"  // Allow same-origin (useful for some dev tools)
     ],
     advanced: {
-      // Temporarily disables the CSRF origin check so Postman and Mobile Apps 
-      // can hit the API without manually setting the Origin header.
       // NOTE: Remove this in production if you only want to allow browser clients!
       disableOriginCheck: true,
     }
@@ -37,3 +38,4 @@ export const getAuth = async () => {
 
   return authInstance;
 };
+

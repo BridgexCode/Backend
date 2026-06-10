@@ -1,15 +1,16 @@
 import { Router } from "express";
-import { betterAuthHandler } from "./auth.controller";
-import { protectRoute } from "./auth.middleware";
+import { registerOrganization, login, logout, getMe } from "./auth.controller.js";
+import { protectRoute } from "./auth.middleware.js";
 
 const router = Router();
 
-router.get("/me", protectRoute, (req, res) => {
-  res.json({
-    message: "You are successfully authenticated!",
-    user: (req as any).user,
-    session: (req as any).session
-  });
-});
+// Public Routes
+router.post("/register-organization", registerOrganization);
+router.post("/login", login);
+router.post("/logout", logout);
+
+// Protected Routes
+router.get("/me", protectRoute, getMe);
 
 export default router;
+

@@ -1,18 +1,103 @@
-import { Request, Response, NextFunction } from "express";
-import { getAuth } from "../../lib/auth";
+import { Response, NextFunction } from "express";
+import { AuthRequest } from "./auth.types.js";
+import * as AuthService from "./auth.service.js";
+import { validateRegisterOrganization, validateLogin } from "./auth.validation.js";
+import { getAuth } from "../../lib/auth.js";
+import { toNodeHandler } from "better-auth/node";
 
-// Bypasses TypeScript's import() -> require() transformation in CommonJS
-const dynamicImport = new Function('specifier', 'return import(specifier)');
-
-export const betterAuthHandler = async (req: Request, res: Response, next: NextFunction) => {
+export const betterAuthHandler = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    const { toNodeHandler } = await dynamicImport("better-auth/node");
     const auth = await getAuth();
-
-    // Delegate the request to Better Auth's node handler
-    const handler = toNodeHandler(auth.handler);
-    return handler(req, res);
+    return toNodeHandler(auth.handler)(req, res);
   } catch (error) {
     next(error);
   }
+};
+
+export const registerOrganization = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    validateRegisterOrganization(req.body);
+    const result = await AuthService.registerOrganization(req.body);
+
+    if (result.setCookie) {
+      res.setHeader("set-cookie", result.setCookie);
+    }
+
+    res.status(201).json({
+      message: "Organization registered successfully",
+      token: result.token,
+      user: result.user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const login = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    validateLogin(req.body);
+    const result = await AuthService.login(req.body);
+
+    if (result.setCookie) {
+      res.setHeader("set-cookie", result.setCookie);
+    }
+
+    res.status(200).json({
+      message: "Login successful",
+      token: result.token,
+      user: result.user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const logout = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const result = await AuthService.logout(req.headers);
+
+    if (result.setCookie) {
+      res.setHeader("set-cookie", result.setCookie);
+    }
+
+    res.status(200).json({ message: "Logout successful" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMe = async (req: AuthRequest, res: Response) => {
+  const user = req.user;
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  res.status(200).json({
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      organizationId: user.organizationId,
+      phoneNumber: user.phoneNumber || "",
+      createdAt: user.createdAt,
+    },
+  });
 };
