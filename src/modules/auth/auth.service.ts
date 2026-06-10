@@ -55,7 +55,7 @@ export const registerOrganization = async (data: any) => {
       id: signUpData.user.id,
       name: signUpData.user.name,
       email: signUpData.user.email,
-      role: Roles.ORGANIZATION_ADMIN as Role,
+      role: Roles.ORGANIZATION_OWNER as Role,
       organizationId: orgResult.id,
       phoneNumber: phone || "",
       createdAt: signUpData.user.createdAt,
@@ -100,7 +100,7 @@ export const login = async (data: any) => {
       organizationId = memberRecord.organizationId.toString();
       role =
         memberRecord.role === "admin"
-          ? Roles.ORGANIZATION_ADMIN
+          ? Roles.ORGANIZATION_OWNER
           : Roles.OPERATIONS_MANAGER;
     }
   } else {
