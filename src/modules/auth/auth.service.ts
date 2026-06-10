@@ -99,7 +99,7 @@ export const login = async (data: any) => {
     if (memberRecord) {
       organizationId = memberRecord.organizationId.toString();
       role =
-        memberRecord.role === "admin"
+        memberRecord.role === "owner"
           ? Roles.ORGANIZATION_OWNER
           : Roles.OPERATIONS_MANAGER;
     }

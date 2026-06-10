@@ -10,7 +10,7 @@ export interface IUser extends Document {
 
   role:
     | "super_admin"
-    | "organization_admin"
+    | "organization_owner"
     | "operations_manager";
 
   profileImage?: string;
@@ -56,7 +56,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: [
         "super_admin",
-        "organization_admin",
+        "organization_owner",
         "operations_manager",
       ],
       default: "operations_manager",
