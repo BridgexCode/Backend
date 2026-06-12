@@ -1,5 +1,12 @@
 import User from "../../models/User.js"
 
+interface UpdateUserPayload {
+  userName?: string;
+  phone?: string;
+  role?: "organization_owner" | "operations_manager";
+  isActive?: boolean;
+}
+
 export const softDeleteUser = async (userId : string)=>{
     const user = await User.findById(userId)
 
@@ -17,5 +24,26 @@ export const softDeleteUser = async (userId : string)=>{
         isActive:false
         },
         {new : true}
+    )
+}
+
+export const updateUser = async (
+        userId:string,
+        payload:UpdateUserPayload
+    )=>{
+
+    const user = await User.findById(userId)
+
+    if(!user || user.isDeleted){
+        throw new Error('user not found')
+    }
+
+    return await User.findByIdAndUpdate(
+        userId,
+        payload,
+        {
+            new:true,
+            runValidators:true
+        }
     )
 }

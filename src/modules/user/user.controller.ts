@@ -1,5 +1,5 @@
 import { Request,Response } from "express";
-import { softDeleteUser } from "./user.serviece.js";
+import { softDeleteUser, updateUser } from "./user.serviece.js";
 
 
 export const softDeleteUserController = async(req:Request,res:Response) =>{
@@ -20,4 +20,17 @@ export const softDeleteUserController = async(req:Request,res:Response) =>{
         data:deletedUser
     }
     )
+}
+
+export const updateUserController = async (req:Request,res:Response)=>{
+
+    const {id} = req.params;
+
+    const updatedUser = await updateUser(id as string,req.body)
+
+    res.json({
+        success:true,
+        message: "User updated successfully",
+        data: updatedUser,
+    })
 }
