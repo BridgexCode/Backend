@@ -1,3 +1,4 @@
+import { boolean } from "better-auth";
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IUser extends Document {
@@ -16,6 +17,8 @@ export interface IUser extends Document {
   profileImage?: string;
 
   isActive: boolean;
+
+  isDeleted: boolean;
 
   createdAt: Date;
   updatedAt: Date;
@@ -69,6 +72,11 @@ const userSchema = new Schema<IUser>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+
+    isDeleted: {
+    type: Boolean,
+    default: false,
     },
   },
   {
