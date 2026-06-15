@@ -1,5 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
 import authRoutes from "./modules/auth/auth.routes.js";
+import userRoutes from "./modules/user/user.routes.js";
 import { betterAuthHandler } from "./modules/auth/auth.controller.js";
 import cors from "cors"
 import { AppError } from "./common/errors/app-error.js";
@@ -18,6 +19,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.all("/api/auth/{*any}", betterAuthHandler);
+app.use("/api/users", userRoutes);
 
 // Global JSON Error Handler
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
