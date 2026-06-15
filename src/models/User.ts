@@ -2,7 +2,7 @@ import { boolean } from "better-auth";
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IUser extends Document {
-  companyId: mongoose.Types.ObjectId;
+  organizationId: mongoose.Types.ObjectId;
 
   userName: string;
   email: string;
@@ -26,7 +26,7 @@ export interface IUser extends Document {
 
 const userSchema = new Schema<IUser>(
   {
-    companyId: {
+    organizationId: {
       type: Schema.Types.ObjectId,
       ref: "Company",
       required: true,

@@ -1,5 +1,6 @@
 import { Request,Response } from "express";
 import { softDeleteUser, updateUser } from "./user.serviece.js";
+import { AuthRequest } from "../auth/auth.types.js";
 
 
 export const softDeleteUserController = async(req:Request,res:Response) =>{
@@ -22,11 +23,11 @@ export const softDeleteUserController = async(req:Request,res:Response) =>{
     )
 }
 
-export const updateUserController = async (req:Request,res:Response)=>{
+export const updateUserController = async (req:AuthRequest,res:Response)=>{
 
     const {id} = req.params;
 
-    const updatedUser = await updateUser(id as string,req.body)
+    const updatedUser = await updateUser(id as string,req.body,req.user!)
 
     res.json({
         success:true,
