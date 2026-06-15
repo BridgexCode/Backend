@@ -1,3 +1,85 @@
+// import mongoose, { Document, Schema } from "mongoose";
+
+// export interface IUser extends Document {
+//   companyId: mongoose.Types.ObjectId;
+
+//   userName: string;
+//   email: string;
+//   password: string;
+//   phone?: string;
+
+//   role:
+//     | "super_admin"
+//     | "organization_owner"
+//     | "operations_manager";
+
+//   profileImage?: string;
+
+//   isActive: boolean;
+
+//   createdAt: Date;
+//   updatedAt: Date;
+// }
+
+// const userSchema = new Schema<IUser>(
+//   {
+//     companyId: {
+//       type: Schema.Types.ObjectId,
+//       ref: "Company",
+//       required: true,
+//     },
+
+//     userName: {
+//       type: String,
+//       required: true,
+//       trim: true,
+//     },
+
+//     email: {
+//       type: String,
+//       required: true,
+//       unique: true,
+//       lowercase: true,
+//       trim: true,
+//     },
+
+//     password: {
+//       type: String,
+//       required: true,
+//     },
+
+//     phone: {
+//       type: String,
+//     },
+
+//     role: {
+//       type: String,
+//       enum: [
+//         "super_admin",
+//         "organization_owner",
+//         "operations_manager",
+//       ],
+//       default: "operations_manager",
+//     },
+
+//     profileImage: {
+//       type: String,
+//     },
+
+//     isActive: {
+//       type: Boolean,
+//       default: true,
+//     },
+//   },
+//   {
+//     timestamps: true,
+//   }
+// );
+
+// const User = mongoose.model<IUser>("User", userSchema);
+
+// export default User;
+
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IUser extends Document {
@@ -9,9 +91,17 @@ export interface IUser extends Document {
   phone?: string;
 
   role:
-    | "super_admin"
-    | "organization_owner"
-    | "operations_manager";
+    | "SUPER_ADMIN"
+    | "ORG_ADMIN"
+    | "OPERATIONS_MANAGER"
+    | "DRIVER";
+
+  status:
+    | "ACTIVE"
+    | "INACTIVE"
+    | "SUSPENDED";
+
+  createdBy?: mongoose.Types.ObjectId;
 
   profileImage?: string;
 
@@ -27,6 +117,7 @@ const userSchema = new Schema<IUser>(
       type: Schema.Types.ObjectId,
       ref: "Company",
       required: true,
+      index: true,
     },
 
     userName: {
@@ -38,7 +129,6 @@ const userSchema = new Schema<IUser>(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
     },
@@ -50,16 +140,35 @@ const userSchema = new Schema<IUser>(
 
     phone: {
       type: String,
+      trim: true,
     },
 
     role: {
       type: String,
       enum: [
-        "super_admin",
-        "organization_owner",
-        "operations_manager",
+        "SUPER_ADMIN",
+        "ORG_ADMIN",
+        "OPERATIONS_MANAGER",
+        "DRIVER",
       ],
-      default: "operations_manager",
+      default: "DRIVER",
+      index: true,
+    },
+
+    status: {
+      type: String,
+      enum: [
+        "ACTIVE",
+        "INACTIVE",
+        "SUSPENDED",
+      ],
+      default: "ACTIVE",
+      index: true,
+    },
+
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
 
     profileImage: {
@@ -76,6 +185,47 @@ const userSchema = new Schema<IUser>(
   }
 );
 
-const User = mongoose.model<IUser>("User", userSchema);
+
+userSchema.index(
+  {
+    companyId: 1,
+    email: 1,
+  },
+  {
+    unique: true,
+  }
+);
+
+// Unique phone per company
+userSchema.index(
+  {
+    companyId: 1,
+    phone: 1,
+  },
+  {
+    unique: true,
+    partialFilterExpression: {
+      phone: { $exists: true },
+    },
+  }
+);
+
+// Query optimization indexes
+userSchema.index({
+  companyId: 1,
+});
+
+userSchema.index({
+  role: 1,
+});
+
+userSchema.index({
+  status: 1,
+});
+
+const User = mongoose.model<IUser>(
+  "User",
+  userSchema
+);
 
 export default User;
