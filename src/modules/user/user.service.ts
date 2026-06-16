@@ -7,7 +7,7 @@ import { CreateUserInput } from "./user.types.js";
 export const createUser = async (
   data: CreateUserInput,
   organizationId: string,
-  createdBy: string
+  createdBy: string,
 ) => {
   const { name, email, phone, password, role } = data;
 
@@ -75,7 +75,7 @@ export const createUser = async (
         $set: {
           phoneNumber: phone,
         },
-      }
+      },
     );
   }
 
@@ -85,13 +85,13 @@ export const createUser = async (
 
   await db.collection("member").insertOne({
     organizationId: new mongoose.Types.ObjectId(organizationId),
-    userId: createdUser.id,
+    userId: new mongoose.Types.ObjectId(createdUser.id),
     role:
       role === Roles.ORGANIZATION_OWNER
         ? "owner"
         : role === Roles.OPERATIONS_MANAGER
-        ? "member"
-        : "worker",
+          ? "member"
+          : "worker",
     customRole: role,
     createdBy,
     createdAt: new Date(),

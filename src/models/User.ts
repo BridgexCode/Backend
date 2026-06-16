@@ -8,10 +8,7 @@ export interface IUser extends Document {
   password: string;
   phone?: string;
 
-  role:
-    | "super_admin"
-    | "organization_owner"
-    | "operations_manager";
+  role: "SUPER_ADMIN" | "ORGANIZATION_OWNER" | "OPERATIONS_MANAGER";
 
   profileImage?: string;
 
@@ -54,12 +51,8 @@ const userSchema = new Schema<IUser>(
 
     role: {
       type: String,
-      enum: [
-        "super_admin",
-        "organization_owner",
-        "operations_manager",
-      ],
-      default: "operations_manager",
+      enum: ["SUPER_ADMIN", "ORGANIZATION_OWNER", "OPERATIONS_MANAGER"],
+      default: "OPERATIONS_MANAGER",
     },
 
     profileImage: {
@@ -73,7 +66,7 @@ const userSchema = new Schema<IUser>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const User = mongoose.model<IUser>("User", userSchema);

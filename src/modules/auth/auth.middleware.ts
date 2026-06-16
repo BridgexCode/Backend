@@ -37,11 +37,16 @@ export const protectRoute = async (
     if (session.user.role !== Roles.SUPER_ADMIN) {
       const memberRecord = await db
         .collection("member")
-        .findOne({ userId: session.user.id });
+        .findOne({
+          $or: [
+            { userId: session.user.id },
+            { userId: new mongoose.Types.ObjectId(session.user.id) },
+          ],
+        });
       if (memberRecord) {
         organizationId = memberRecord.organizationId.toString();
         role =
-          memberRecord.role === "admin"
+          memberRecord.role === "owner"
             ? Roles.ORGANIZATION_OWNER
             : Roles.OPERATIONS_MANAGER;
       }
