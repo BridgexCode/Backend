@@ -51,7 +51,7 @@ const userSchema = new Schema<IUser>(
 
     role: {
       type: String,
-      enum: ["SUPER_ADMIN", "ORGANIZATION_OWNER", "OPERATIONS_MANAGER"],
+      enum: ["SUPER_ADMIN", "ORGANIZATION_OWNER", "OPERATIONS_MANAGER", "WORKER"],
       default: "OPERATIONS_MANAGER",
     },
 
