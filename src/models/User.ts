@@ -8,12 +8,12 @@ export interface IUser extends Document {
   password: string;
   phone?: string;
 
-  role: "SUPER_ADMIN" | "ORGANIZATION_OWNER" | "OPERATIONS_MANAGER";
+  role: "SUPER_ADMIN" | "ORGANIZATION_OWNER" | "OPERATIONS_MANAGER" | "WORKER";
 
+  status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+  createdBy?: mongoose.Types.ObjectId;
   profileImage?: string;
-
   isActive: boolean;
-
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,8 +51,20 @@ const userSchema = new Schema<IUser>(
 
     role: {
       type: String,
-      enum: ["SUPER_ADMIN", "ORGANIZATION_OWNER", "OPERATIONS_MANAGER", "WORKER"],
+      enum: [
+        "SUPER_ADMIN",
+        "ORGANIZATION_OWNER",
+        "OPERATIONS_MANAGER",
+        "WORKER",
+      ],
       default: "OPERATIONS_MANAGER",
+    },
+
+    status: {
+      type: String,
+      enum: ["ACTIVE", "INACTIVE", "SUSPENDED"],
+      default: "ACTIVE",
+      index: true,
     },
 
     profileImage: {
@@ -62,6 +74,11 @@ const userSchema = new Schema<IUser>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
   },
   {
