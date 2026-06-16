@@ -8,26 +8,12 @@ export interface IUser extends Document {
   email: string;
   password: string;
   phone?: string;
-
-  role:
-    | "SUPER_ADMIN"
-    | "ORG_ADMIN"
-    | "OPERATIONS_MANAGER"
-    | "DRIVER";
-
-  status:
-    | "ACTIVE"
-    | "INACTIVE"
-    | "SUSPENDED";
-
+  role: "SUPER_ADMIN" | "ORGANIZATION_OWNER" | "OPERATIONS_MANAGER" | "WORKER";
+  status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
   createdBy?: mongoose.Types.ObjectId;
-
   profileImage?: string;
-
   isActive: boolean;
-
   isDeleted: boolean;
-
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,28 +54,18 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: [
         "SUPER_ADMIN",
-        "ORG_ADMIN",
+        "ORGANIZATION_OWNER",
         "OPERATIONS_MANAGER",
-        "DRIVER",
+        "WORKER",
       ],
-      default: "DRIVER",
-      index: true,
+      default: "OPERATIONS_MANAGER",
     },
 
     status: {
       type: String,
-      enum: [
-        "ACTIVE",
-        "INACTIVE",
-        "SUSPENDED",
-      ],
+      enum: ["ACTIVE", "INACTIVE", "SUSPENDED"],
       default: "ACTIVE",
       index: true,
-    },
-
-    createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
     },
 
     profileImage: {
@@ -101,6 +77,10 @@ const userSchema = new Schema<IUser>(
       default: true,
     },
 
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      
     isDeleted: {
     type: Boolean,
     default: false,
@@ -108,7 +88,7 @@ const userSchema = new Schema<IUser>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 
