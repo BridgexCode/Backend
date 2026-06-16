@@ -1,29 +1,30 @@
+import { boolean } from "better-auth";
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IUser extends Document {
-  companyId: mongoose.Types.ObjectId;
+  organizationId: mongoose.Types.ObjectId;
 
   userName: string;
   email: string;
   password: string;
   phone?: string;
-
   role: "SUPER_ADMIN" | "ORGANIZATION_OWNER" | "OPERATIONS_MANAGER" | "WORKER";
-
   status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
   createdBy?: mongoose.Types.ObjectId;
   profileImage?: string;
   isActive: boolean;
+  isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const userSchema = new Schema<IUser>(
   {
-    companyId: {
+    organizationId: {
       type: Schema.Types.ObjectId,
       ref: "Company",
       required: true,
+      index: true,
     },
 
     userName: {
@@ -35,7 +36,6 @@ const userSchema = new Schema<IUser>(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
     },
@@ -47,6 +47,7 @@ const userSchema = new Schema<IUser>(
 
     phone: {
       type: String,
+      trim: true,
     },
 
     role: {
@@ -79,6 +80,10 @@ const userSchema = new Schema<IUser>(
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      
+    isDeleted: {
+    type: Boolean,
+    default: false,
     },
   },
   {
@@ -86,6 +91,47 @@ const userSchema = new Schema<IUser>(
   },
 );
 
-const User = mongoose.model<IUser>("User", userSchema);
+
+userSchema.index(
+  {
+    companyId: 1,
+    email: 1,
+  },
+  {
+    unique: true,
+  }
+);
+
+// Unique phone per company
+userSchema.index(
+  {
+    companyId: 1,
+    phone: 1,
+  },
+  {
+    unique: true,
+    partialFilterExpression: {
+      phone: { $exists: true },
+    },
+  }
+);
+
+// Query optimization indexes
+userSchema.index({
+  companyId: 1,
+});
+
+userSchema.index({
+  role: 1,
+});
+
+userSchema.index({
+  status: 1,
+});
+
+const User = mongoose.model<IUser>(
+  "User",
+  userSchema
+);
 
 export default User;
