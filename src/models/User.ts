@@ -80,17 +80,17 @@ const userSchema = new Schema<IUser>(
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      
-    isDeleted: {
-    type: Boolean,
-    default: false,
+
+      isDeleted: {
+        type: Boolean,
+        default: false,
+      },
     },
   },
   {
     timestamps: true,
   },
 );
-
 
 userSchema.index(
   {
@@ -99,7 +99,7 @@ userSchema.index(
   },
   {
     unique: true,
-  }
+  },
 );
 
 // Unique phone per company
@@ -113,7 +113,7 @@ userSchema.index(
     partialFilterExpression: {
       phone: { $exists: true },
     },
-  }
+  },
 );
 
 // Query optimization indexes
@@ -129,9 +129,6 @@ userSchema.index({
   status: 1,
 });
 
-const User = mongoose.model<IUser>(
-  "User",
-  userSchema
-);
+const User = mongoose.model<IUser>("User", userSchema);
 
 export default User;
