@@ -1,17 +1,12 @@
-import { boolean } from "better-auth";
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IUser extends Document {
-  organizationId: mongoose.Types.ObjectId;
-
-  userName: string;
+  name: string;
   email: string;
-  password: string;
+  emailVerified?: boolean;
   phone?: string;
-  role: "SUPER_ADMIN" | "ORGANIZATION_OWNER" | "OPERATIONS_MANAGER" | "WORKER";
-  status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
-  createdBy?: mongoose.Types.ObjectId;
-  profileImage?: string;
+  phoneNumber?: string;
+  image?: string;
   isActive: boolean;
   isDeleted: boolean;
   createdAt: Date;
@@ -20,14 +15,7 @@ export interface IUser extends Document {
 
 const userSchema = new Schema<IUser>(
   {
-    organizationId: {
-      type: Schema.Types.ObjectId,
-      ref: "Company",
-      required: true,
-      index: true,
-    },
-
-    userName: {
+    name: {
       type: String,
       required: true,
       trim: true,
@@ -40,9 +28,9 @@ const userSchema = new Schema<IUser>(
       trim: true,
     },
 
-    password: {
-      type: String,
-      required: true,
+    emailVerified: {
+      type: Boolean,
+      default: false,
     },
 
     phone: {
@@ -50,24 +38,12 @@ const userSchema = new Schema<IUser>(
       trim: true,
     },
 
-    role: {
+    phoneNumber: {
       type: String,
-      enum: [
-        "SUPER_ADMIN",
-        "ORGANIZATION_OWNER",
-        "OPERATIONS_MANAGER",
-        "WORKER",
-      ],
-      default: "OPERATIONS_MANAGER",
+      trim: true,
     },
 
-    status: {
-      type: String,
-      enum: ["ACTIVE", "INACTIVE", "SUSPENDED"],
-      default: "ACTIVE",
-    },
-
-    profileImage: {
+    image: {
       type: String,
     },
 
@@ -76,58 +52,22 @@ const userSchema = new Schema<IUser>(
       default: true,
     },
 
-    createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-
-      isDeleted: {
-        type: Boolean,
-        default: false,
-      },
+    isDeleted: {
+      type: Boolean,
+      default: false,
     },
   },
   {
     timestamps: true,
+    collection: "user",
   },
 );
 
-userSchema.index(
-  {
-    companyId: 1,
-    email: 1,
-  },
-  {
-    unique: true,
-  },
-);
-
-// Unique phone per company
-userSchema.index(
-  {
-    companyId: 1,
-    phone: 1,
-  },
-  {
-    unique: true,
-    partialFilterExpression: {
-      phone: { $exists: true },
-    },
-  },
-);
-
-// Query optimization indexes
-userSchema.index({
-  companyId: 1,
-});
-
-userSchema.index({
-  role: 1,
-});
-
-userSchema.index({
-  status: 1,
-});
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ phone: 1 }, { sparse: true });
+userSchema.index({ phoneNumber: 1 }, { sparse: true });
 
 const User = mongoose.model<IUser>("User", userSchema);
 
 export default User;
+

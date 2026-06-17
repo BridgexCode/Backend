@@ -16,7 +16,18 @@ router.post(
   createUserController,
 );
 
-router.patch("/:id/soft-delete", softDeleteUserController);
-router.patch("/:id/update-user", updateUserController);
+router.patch(
+  "/:id/soft-delete",
+  protectRoute,
+  authorizeRoles(Roles.SUPER_ADMIN, Roles.ORGANIZATION_OWNER),
+  softDeleteUserController,
+);
+router.patch(
+  "/:id/update-user",
+  protectRoute,
+  authorizeRoles(Roles.SUPER_ADMIN, Roles.ORGANIZATION_OWNER),
+  updateUserController,
+);
+
 
 export default router;
