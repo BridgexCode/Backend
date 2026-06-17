@@ -65,7 +65,6 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: ["ACTIVE", "INACTIVE", "SUSPENDED"],
       default: "ACTIVE",
-      index: true,
     },
 
     profileImage: {
