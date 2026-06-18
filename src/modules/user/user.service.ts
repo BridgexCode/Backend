@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
 import { getAuth } from "../../lib/auth.js";
 import { AppError, BadRequestError } from "../../common/errors/app-error.js";
-import { Roles } from "../../common/constants/roles.js";
+import { Roles, Role } from "../../common/constants/roles.js";
 import { CreateUserInput } from "./user.types.js";
 import User from "../../models/User.js";
 import { AuthenticatedUser } from "../auth/auth.types.js";
 
 interface UpdateUserPayload {
-  userName?: string;
+  name?: string;
   phone?: string;
-  role?: "organization_owner" | "operations_manager";
+  role?: Role;
   isActive?: boolean;
 }
 
@@ -77,19 +77,22 @@ export const createUser = async (
     });
 
     createdUser = result.user;
-
-    await db.collection("user").updateOne(
-      { id: createdUser.id },
-      {
-        $set: {
-          phoneNumber: phone,
-        },
-      },
-    );
   }
 
   if (!createdUser) {
     throw new AppError(500, "User creation failed");
+  }
+
+  if (phone) {
+    await db.collection("user").updateOne(
+      { _id: new mongoose.Types.ObjectId(createdUser.id) },
+      {
+        $set: {
+          phoneNumber: phone,
+          phone: phone,
+        },
+      },
+    );
   }
 
   await db.collection("member").insertOne({
@@ -118,25 +121,65 @@ export const createUser = async (
   };
 };
 
-export const softDeleteUser = async (userId : string)=>{
-    const user = await User.findById(userId)
+export const softDeleteUser = async (
+  userId: string,
+  currentUser: AuthenticatedUser
+) => {
+  const user = await User.findById(userId);
 
-    if(!user){
-        throw new Error('user not found')
+  if (!user || user.isDeleted) {
+    throw new AppError(404, "User not found");
+  }
+
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+
+  const member = await db.collection("member").findOne({
+    userId: new mongoose.Types.ObjectId(userId),
+  });
+
+  const role = member?.customRole || member?.role;
+
+  // Authorization check
+  if (currentUser.role !== Roles.SUPER_ADMIN) {
+    if (currentUser.role !== Roles.ORGANIZATION_OWNER) {
+      throw new AppError(403, "Unauthorized");
     }
 
-    if (user.role === "SUPER_ADMIN") {
-        throw new Error("Super Admin cannot be deleted");
+    if (
+      member?.organizationId?.toString() !==
+      currentUser.organizationId?.toString()
+    ) {
+      throw new AppError(403, "Unauthorized");
     }
+  }
 
-    return await User.findByIdAndUpdate(userId,
-        {
-        isDeleted:true,
-        isActive:false
-        },
-        {new : true}
-    )
-}
+  if (role === Roles.SUPER_ADMIN || role === "SUPER_ADMIN") {
+    throw new BadRequestError("Super Admin cannot be deleted");
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    {
+      isDeleted: true,
+      isActive: false,
+    },
+    { returnDocument: "after" }
+  );
+
+  return {
+    id: updatedUser?._id.toString(),
+    name: updatedUser?.name,
+    email: updatedUser?.email,
+    phone: updatedUser?.phone || updatedUser?.phoneNumber,
+    role: role || Roles.WORKER,
+    organizationId: member?.organizationId?.toString(),
+    isActive: updatedUser?.isActive,
+    isDeleted: updatedUser?.isDeleted,
+  };
+};
 
 export const updateUser = async (
   userId: string,
@@ -146,32 +189,90 @@ export const updateUser = async (
   const user = await User.findById(userId);
 
   if (!user || user.isDeleted) {
-    throw new Error("User not found");
+    throw new AppError(404, "User not found");
   }
+
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+
+  const targetMember = await db.collection("member").findOne({
+    userId: new mongoose.Types.ObjectId(userId),
+  });
+
+  const targetRole = targetMember?.customRole || targetMember?.role;
+  const targetOrgId = targetMember?.organizationId;
 
   if (currentUser.role !== Roles.SUPER_ADMIN) {
     if (currentUser.role !== Roles.ORGANIZATION_OWNER) {
-      throw new Error("Unauthorized");
+      throw new AppError(403, "Unauthorized");
     }
 
     if (
-      user.organizationId?.toString() !==
+      targetOrgId?.toString() !==
       currentUser.organizationId?.toString()
     ) {
-      throw new Error("Unauthorized");
+      throw new AppError(403, "Unauthorized");
     }
 
-    if (user.role === "SUPER_ADMIN") {
-      throw new Error("Cannot update super admin");
+    if (targetRole === Roles.SUPER_ADMIN || targetRole === "SUPER_ADMIN") {
+      throw new BadRequestError("Cannot update super admin");
     }
   }
 
-  return await User.findByIdAndUpdate(
+  const userUpdates: any = {};
+  if (updateData.name !== undefined) {
+    userUpdates.name = updateData.name;
+  }
+  if (updateData.phone !== undefined) {
+    userUpdates.phone = updateData.phone;
+    userUpdates.phoneNumber = updateData.phone;
+  }
+  if (updateData.isActive !== undefined) {
+    userUpdates.isActive = updateData.isActive;
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
     userId,
-    updateData,
+    userUpdates,
     {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }
   );
+
+  if (updateData.role !== undefined && targetMember) {
+    const newMemberRole =
+      updateData.role === Roles.ORGANIZATION_OWNER
+        ? "owner"
+        : updateData.role === Roles.OPERATIONS_MANAGER
+          ? "member"
+          : "worker";
+
+    await db.collection("member").updateOne(
+      { _id: targetMember._id },
+      {
+        $set: {
+          role: newMemberRole,
+          customRole: updateData.role,
+          updatedAt: new Date(),
+        },
+      }
+    );
+  }
+
+  const updatedMember = await db.collection("member").findOne({
+    userId: new mongoose.Types.ObjectId(userId),
+  });
+
+  return {
+    id: updatedUser?._id.toString(),
+    name: updatedUser?.name,
+    email: updatedUser?.email,
+    phone: updatedUser?.phone || updatedUser?.phoneNumber,
+    role: updatedMember?.customRole || updatedMember?.role,
+    organizationId: updatedMember?.organizationId?.toString(),
+    isActive: updatedUser?.isActive,
+  };
 };

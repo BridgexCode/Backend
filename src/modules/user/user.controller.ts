@@ -31,33 +31,50 @@ export const createUserController = async (
   }
 };
 
-export const softDeleteUserController = async (req: Request, res: Response) => {
-  const { id } = req.params;
+export const softDeleteUserController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { id } = req.params;
 
-  if (!id) {
-    return res.status(400).json({
-      success: false,
-      message: "User ID is required",
+    if (!id) {
+      res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+      return;
+    }
+
+    const deletedUser = await UserService.softDeleteUser(id as string, req.user!);
+
+    res.status(200).json({
+      success: true,
+      message: "user deleted successfully",
+      data: deletedUser,
     });
+  } catch (error) {
+    next(error);
   }
-
-  const deletedUser = await UserService.softDeleteUser(id as string);
-
-  res.status(200).json({
-    success: true,
-    message: "user deleted successfully",
-    data: deletedUser,
-  });
 };
 
-export const updateUserController = async (req: AuthRequest, res: Response) => {
-  const { id } = req.params;
+export const updateUserController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { id } = req.params;
 
-  const updatedUser = await UserService.updateUser(id as string, req.body, req.user!);
+    const updatedUser = await UserService.updateUser(id as string, req.body, req.user!);
 
-  res.json({
-    success: true,
-    message: "User updated successfully",
-    data: updatedUser,
-  });
+    res.json({
+      success: true,
+      message: "User updated successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
