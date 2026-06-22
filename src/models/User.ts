@@ -1,35 +1,21 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IUser extends Document {
-  companyId: mongoose.Types.ObjectId;
-
-  userName: string;
+  name: string;
   email: string;
-  password: string;
+  emailVerified?: boolean;
   phone?: string;
-
-  role:
-    | "super_admin"
-    | "organization_owner"
-    | "operations_manager";
-
-  profileImage?: string;
-
+  phoneNumber?: string;
+  image?: string;
   isActive: boolean;
-
+  isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const userSchema = new Schema<IUser>(
   {
-    companyId: {
-      type: Schema.Types.ObjectId,
-      ref: "Company",
-      required: true,
-    },
-
-    userName: {
+    name: {
       type: String,
       required: true,
       trim: true,
@@ -38,31 +24,26 @@ const userSchema = new Schema<IUser>(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
     },
 
-    password: {
-      type: String,
-      required: true,
+    emailVerified: {
+      type: Boolean,
+      default: false,
     },
 
     phone: {
       type: String,
+      trim: true,
     },
 
-    role: {
+    phoneNumber: {
       type: String,
-      enum: [
-        "super_admin",
-        "organization_owner",
-        "operations_manager",
-      ],
-      default: "operations_manager",
+      trim: true,
     },
 
-    profileImage: {
+    image: {
       type: String,
     },
 
@@ -70,12 +51,23 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: true,
     },
+
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
-  }
+    collection: "user",
+  },
 );
+
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ phone: 1 }, { sparse: true });
+userSchema.index({ phoneNumber: 1 }, { sparse: true });
 
 const User = mongoose.model<IUser>("User", userSchema);
 
 export default User;
+

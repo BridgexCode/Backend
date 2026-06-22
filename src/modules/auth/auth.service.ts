@@ -93,9 +93,12 @@ export const login = async (data: any) => {
   let role: Role = (loginData.user.role as Role) || Roles.OPERATIONS_MANAGER;
 
   if (loginData.user.role !== Roles.SUPER_ADMIN) {
-    const memberRecord = await db
-      .collection("member")
-      .findOne({ userId: loginData.user.id });
+    const memberRecord = await db.collection("member").findOne({
+      $or: [
+        { userId: loginData.user.id },
+        { userId: new mongoose.Types.ObjectId(loginData.user.id) },
+      ],
+    });
     if (memberRecord) {
       organizationId = memberRecord.organizationId.toString();
       role =

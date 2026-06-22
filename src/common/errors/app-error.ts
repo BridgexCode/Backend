@@ -1,9 +1,12 @@
 export class AppError extends Error {
+  public readonly isOperational: boolean;
+
   constructor(
     public statusCode: number,
     message: string
   ) {
     super(message);
+    this.isOperational = true;
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }

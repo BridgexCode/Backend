@@ -5,9 +5,7 @@ import { fromNodeHeaders } from "better-auth/node";
 import { AuthRequest } from "./auth.types.js";
 import { Roles, Role } from "../../common/constants/roles.js";
 
-/**
- * Middleware to protect secure routes.
- */
+//  Middleware to protect secure routes.
 export const protectRoute = async (
   req: AuthRequest,
   res: Response,
@@ -39,11 +37,16 @@ export const protectRoute = async (
     if (session.user.role !== Roles.SUPER_ADMIN) {
       const memberRecord = await db
         .collection("member")
-        .findOne({ userId: session.user.id });
+        .findOne({
+          $or: [
+            { userId: session.user.id },
+            { userId: new mongoose.Types.ObjectId(session.user.id) },
+          ],
+        });
       if (memberRecord) {
         organizationId = memberRecord.organizationId.toString();
         role =
-          memberRecord.role === "admin"
+          memberRecord.role === "owner"
             ? Roles.ORGANIZATION_OWNER
             : Roles.OPERATIONS_MANAGER;
       }
@@ -67,4 +70,21 @@ export const protectRoute = async (
   } catch (error) {
     next(error);
   }
+};
+
+// Use only after protect middleware !!!
+export const authorizeRoles = (...allowedRoles: Role[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res
+        .status(403)
+        .json({ error: "Forbidden: You do not have permission" });
+    }
+
+    next();
+  };
 };
