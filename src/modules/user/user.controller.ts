@@ -78,3 +78,21 @@ export const updateUserController = async (
     next(error);
   }
 };
+
+export const toggleActiveUserController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { id } = req.params;
+    const updatedUser = await UserService.toggleActiveUser(id as string, req.user!);
+    res.json({
+      success: true,
+      message: "User status toggled successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

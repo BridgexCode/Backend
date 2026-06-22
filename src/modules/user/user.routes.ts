@@ -3,6 +3,7 @@ import {
   createUserController,
   softDeleteUserController,
   updateUserController,
+  toggleActiveUserController,
 } from "./user.controller.js";
 import { protectRoute, authorizeRoles } from "../auth/auth.middleware.js";
 import { Roles } from "../../common/constants/roles.js";
@@ -29,5 +30,11 @@ router.patch(
   updateUserController,
 );
 
+router.patch(
+  "/:id/toggle-active",
+  protectRoute,
+  authorizeRoles(Roles.SUPER_ADMIN, Roles.ORGANIZATION_OWNER),
+  toggleActiveUserController,
+);
 
 export default router;
