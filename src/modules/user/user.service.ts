@@ -276,3 +276,61 @@ export const updateUser = async (
     isActive: updatedUser?.isActive,
   };
 };
+
+export const toggleActiveUser = async (
+  userId: string,
+  currentUser: AuthenticatedUser
+) => {
+  const user = await User.findById(userId);
+
+  if (!user || user.isDeleted) {
+    throw new AppError(404, "User not found");
+  }
+
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+
+  const targetMember = await db.collection("member").findOne({
+    userId: new mongoose.Types.ObjectId(userId),
+  });
+
+  const targetRole = targetMember?.customRole || targetMember?.role;
+  const targetOrgId = targetMember?.organizationId;
+
+  if (currentUser.role !== Roles.SUPER_ADMIN) {
+    if (currentUser.role !== Roles.ORGANIZATION_OWNER) {
+      throw new AppError(403, "Unauthorized");
+    }
+
+    if (
+      targetOrgId?.toString() !==
+      currentUser.organizationId?.toString()
+    ) {
+      throw new AppError(403, "Unauthorized");
+    }
+
+    if (targetRole === Roles.SUPER_ADMIN || targetRole === "SUPER_ADMIN") {
+      throw new BadRequestError("Cannot toggle super admin");
+    }
+  }
+
+  const newActiveState = !user.isActive;
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { isActive: newActiveState },
+    { returnDocument: "after", runValidators: true }
+  );
+
+  return {
+    id: updatedUser?._id.toString(),
+    name: updatedUser?.name,
+    email: updatedUser?.email,
+    phone: updatedUser?.phone || updatedUser?.phoneNumber,
+    role: targetRole,
+    organizationId: targetOrgId?.toString(),
+    isActive: updatedUser?.isActive,
+  };
+};
