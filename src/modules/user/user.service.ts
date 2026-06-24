@@ -125,19 +125,20 @@ export const softDeleteUser = async (
   userId: string,
   currentUser: AuthenticatedUser
 ) => {
-  const user = await User.findById(userId);
-
-  if (!user || user.isDeleted) {
-    throw new AppError(404, "User not found");
-  }
-
   const db = mongoose.connection.db;
   if (!db) {
     throw new AppError(500, "Database connection not ready");
   }
 
+  const userIdObj = new mongoose.Types.ObjectId(userId);
+
+  const user = await db.collection("user").findOne({ _id: userIdObj });
+  if (!user || user.isDeleted) {
+    throw new AppError(404, "User not found");
+  }
+
   const member = await db.collection("member").findOne({
-    userId: new mongoose.Types.ObjectId(userId),
+    userId: userIdObj,
   });
 
   const role = member?.customRole || member?.role;
@@ -160,24 +161,25 @@ export const softDeleteUser = async (
     throw new BadRequestError("Super Admin cannot be deleted");
   }
 
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    {
-      isDeleted: true,
-      isActive: false,
-    },
-    { returnDocument: "after" }
+  const updatedUser = await db.collection("user").findOneAndUpdate(
+    { _id: userIdObj },
+    { $set: { isDeleted: true, isActive: false, updatedAt: new Date() } },
+    { returnDocument: "after" },
   );
 
+  if (!updatedUser) {
+    throw new AppError(404, "User not found");
+  }
+
   return {
-    id: updatedUser?._id.toString(),
-    name: updatedUser?.name,
-    email: updatedUser?.email,
-    phone: updatedUser?.phone || updatedUser?.phoneNumber,
+    id: updatedUser._id.toString(),
+    name: updatedUser.name,
+    email: updatedUser.email,
+    phone: updatedUser.phone || updatedUser.phoneNumber || "",
     role: role || Roles.WORKER,
     organizationId: member?.organizationId?.toString(),
-    isActive: updatedUser?.isActive,
-    isDeleted: updatedUser?.isDeleted,
+    isActive: updatedUser.isActive,
+    isDeleted: updatedUser.isDeleted,
   };
 };
 
@@ -186,19 +188,20 @@ export const updateUser = async (
   updateData: UpdateUserPayload,
   currentUser: AuthenticatedUser
 ) => {
-  const user = await User.findById(userId);
-
-  if (!user || user.isDeleted) {
-    throw new AppError(404, "User not found");
-  }
-
   const db = mongoose.connection.db;
   if (!db) {
     throw new AppError(500, "Database connection not ready");
   }
 
+  const userIdObj = new mongoose.Types.ObjectId(userId);
+
+  const user = await db.collection("user").findOne({ _id: userIdObj });
+  if (!user || user.isDeleted) {
+    throw new AppError(404, "User not found");
+  }
+
   const targetMember = await db.collection("member").findOne({
-    userId: new mongoose.Types.ObjectId(userId),
+    userId: userIdObj,
   });
 
   const targetRole = targetMember?.customRole || targetMember?.role;
@@ -221,7 +224,7 @@ export const updateUser = async (
     }
   }
 
-  const userUpdates: any = {};
+  const userUpdates: Record<string, unknown> = {};
   if (updateData.name !== undefined) {
     userUpdates.name = updateData.name;
   }
@@ -232,15 +235,17 @@ export const updateUser = async (
   if (updateData.isActive !== undefined) {
     userUpdates.isActive = updateData.isActive;
   }
+  userUpdates.updatedAt = new Date();
 
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    userUpdates,
-    {
-      returnDocument: "after",
-      runValidators: true,
-    }
+  const updatedUser = await db.collection("user").findOneAndUpdate(
+    { _id: userIdObj },
+    { $set: userUpdates },
+    { returnDocument: "after" },
   );
+
+  if (!updatedUser) {
+    throw new AppError(404, "User not found");
+  }
 
   if (updateData.role !== undefined && targetMember) {
     const newMemberRole =
@@ -263,37 +268,83 @@ export const updateUser = async (
   }
 
   const updatedMember = await db.collection("member").findOne({
-    userId: new mongoose.Types.ObjectId(userId),
+    userId: userIdObj,
   });
 
   return {
-    id: updatedUser?._id.toString(),
-    name: updatedUser?.name,
-    email: updatedUser?.email,
-    phone: updatedUser?.phone || updatedUser?.phoneNumber,
+    id: updatedUser._id.toString(),
+    name: updatedUser.name,
+    email: updatedUser.email,
+    phone: updatedUser.phone || updatedUser.phoneNumber || "",
     role: updatedMember?.customRole || updatedMember?.role,
     organizationId: updatedMember?.organizationId?.toString(),
-    isActive: updatedUser?.isActive,
+    isActive: updatedUser.isActive,
   };
+};
+
+export const getManagersByOrganization = async (organizationId: string) => {
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+
+  const members = await db
+    .collection("member")
+    .find({
+      organizationId: new mongoose.Types.ObjectId(organizationId),
+      customRole: Roles.OPERATIONS_MANAGER,
+    })
+    .toArray();
+
+  if (members.length === 0) return [];
+
+  const userIds = members.map((m) => m.userId);
+
+  const users = await db
+    .collection("user")
+    .find({
+      _id: { $in: userIds },
+      isDeleted: { $ne: true },
+    })
+    .toArray();
+
+  const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+
+  return members
+    .map((member) => {
+      const user = userMap.get(member.userId.toString());
+      if (!user) return null;
+      return {
+        id: user._id.toString(),
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || user.phoneNumber || "",
+        role: member.customRole || member.role,
+        organizationId: member.organizationId?.toString(),
+        isActive: user.isActive ?? true,
+      };
+    })
+    .filter(Boolean);
 };
 
 export const toggleActiveUser = async (
   userId: string,
   currentUser: AuthenticatedUser
 ) => {
-  const user = await User.findById(userId);
-
-  if (!user || user.isDeleted) {
-    throw new AppError(404, "User not found");
-  }
-
   const db = mongoose.connection.db;
   if (!db) {
     throw new AppError(500, "Database connection not ready");
   }
 
+  const userIdObj = new mongoose.Types.ObjectId(userId);
+
+  const user = await db.collection("user").findOne({ _id: userIdObj });
+  if (!user || user.isDeleted) {
+    throw new AppError(404, "User not found");
+  }
+
   const targetMember = await db.collection("member").findOne({
-    userId: new mongoose.Types.ObjectId(userId),
+    userId: userIdObj,
   });
 
   const targetRole = targetMember?.customRole || targetMember?.role;
@@ -318,19 +369,23 @@ export const toggleActiveUser = async (
 
   const newActiveState = !user.isActive;
 
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    { isActive: newActiveState },
-    { returnDocument: "after", runValidators: true }
+  const updatedUser = await db.collection("user").findOneAndUpdate(
+    { _id: userIdObj },
+    { $set: { isActive: newActiveState, updatedAt: new Date() } },
+    { returnDocument: "after" },
   );
 
+  if (!updatedUser) {
+    throw new AppError(404, "User not found");
+  }
+
   return {
-    id: updatedUser?._id.toString(),
-    name: updatedUser?.name,
-    email: updatedUser?.email,
-    phone: updatedUser?.phone || updatedUser?.phoneNumber,
+    id: updatedUser._id.toString(),
+    name: updatedUser.name,
+    email: updatedUser.email,
+    phone: updatedUser.phone || updatedUser.phoneNumber || "",
     role: targetRole,
     organizationId: targetOrgId?.toString(),
-    isActive: updatedUser?.isActive,
+    isActive: updatedUser.isActive,
   };
 };
