@@ -4,11 +4,19 @@ import {
   softDeleteUserController,
   updateUserController,
   toggleActiveUserController,
+  getManagersController,
 } from "./user.controller.js";
 import { protectRoute, authorizeRoles } from "../auth/auth.middleware.js";
 import { Roles } from "../../common/constants/roles.js";
 
 const router = Router();
+
+router.get(
+  "/",
+  protectRoute,
+  authorizeRoles(Roles.ORGANIZATION_OWNER),
+  getManagersController,
+);
 
 router.post(
   "/",

@@ -79,6 +79,27 @@ export const updateUserController = async (
   }
 };
 
+export const getManagersController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user?.organizationId) {
+      res.status(400).json({ error: "Organization ID not found" });
+      return;
+    }
+
+    const managers = await UserService.getManagersByOrganization(
+      req.user.organizationId,
+    );
+
+    res.json({ data: managers });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const toggleActiveUserController = async (
   req: AuthRequest,
   res: Response,
