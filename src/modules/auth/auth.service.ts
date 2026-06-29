@@ -126,7 +126,7 @@ export const login = async (data: any) => {
 };
 
 // -- Logout Organization --//
-export const logout = async (headers: any) => {
+export const logout = async (headers: any) => {  
   const auth = await getAuth();
   const logoutResult = await auth.api.signOut({
     headers: fromNodeHeaders(headers),

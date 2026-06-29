@@ -13,3 +13,4 @@ export const validateLogin = (body: any) => {
     throw new BadRequestError("Email and password are required");
   }
 };
+ 

@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction  } from "express";
 import authRoutes from "./modules/auth/auth.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
 import { betterAuthHandler } from "./modules/auth/auth.controller.js";
@@ -31,7 +31,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     (err.statusCode && typeof err.statusCode === "number")
   ) {
     res.status(err.statusCode).json({ error: err.message });
-    return;
+    return; 
   }
 
   console.error("Unhandled Error:", err);
