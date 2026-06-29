@@ -78,3 +78,42 @@ export const updateUserController = async (
     next(error);
   }
 };
+
+export const getManagersController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user?.organizationId) {
+      res.status(400).json({ error: "Organization ID not found" });
+      return;
+    }
+
+    const managers = await UserService.getManagersByOrganization(
+      req.user.organizationId,
+    );
+
+    res.json({ data: managers });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const toggleActiveUserController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { id } = req.params;
+    const updatedUser = await UserService.toggleActiveUser(id as string, req.user!);
+    res.json({
+      success: true,
+      message: "User status toggled successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
