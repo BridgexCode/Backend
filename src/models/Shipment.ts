@@ -1,37 +1,25 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 
 export interface IShipment extends Document {
-  shipmentNumber: string;
-
-  customer: Types.ObjectId;
+  shipmentId: string;
+  orgId: Types.ObjectId;
 
   pickupLocation: string;
-  deliveryLocation: string;
+  destination: string;
 
-  pickupDate?: Date;
-  expectedDeliveryDate?: Date;
-  deliveredDate?: Date;
+  customerName: string;
 
-  driver?: Types.ObjectId;
+  assignedDriverId?: Types.ObjectId;
 
-  vehicleNumber?: string;
+  expectedDeliveryDate: Date;
 
-  status:
-    | "pending"
+  statusLifecycle:
+    | "created"
     | "assigned"
     | "picked_up"
     | "in_transit"
-    | "out_for_delivery"
     | "delivered"
     | "cancelled";
-
-  cargoDescription?: string;
-  weight?: number;
-
-  remarks?: string;
-
-  isActive: boolean;
-  isDeleted: boolean;
 
   createdAt: Date;
   updatedAt: Date;
@@ -39,85 +27,58 @@ export interface IShipment extends Document {
 
 const shipmentSchema = new Schema<IShipment>(
   {
-    shipmentNumber: {
+    shipmentId: {
       type: String,
       required: true,
       unique: true,
       trim: true,
     },
 
-    customer: {
+    orgId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Organization",
       required: true,
     },
 
     pickupLocation: {
       type: String,
       required: true,
+      trim: true,
     },
 
-    deliveryLocation: {
+    destination: {
       type: String,
       required: true,
+      trim: true,
     },
 
-    pickupDate: {
-      type: Date,
+    customerName: {
+      type: String,
+      required: true,
+      trim: true,
     },
 
-    expectedDeliveryDate: {
-      type: Date,
-    },
-
-    deliveredDate: {
-      type: Date,
-    },
-
-    driver: {
+    assignedDriverId: {
       type: Schema.Types.ObjectId,
       ref: "User",
     },
 
-    vehicleNumber: {
-      type: String,
-      trim: true,
+    expectedDeliveryDate: {
+      type: Date,
+      required: true,
     },
 
-    cargoDescription: {
-      type: String,
-    },
-
-    weight: {
-      type: Number,
-    },
-
-    remarks: {
-      type: String,
-    },
-
-    status: {
+    statusLifecycle: {
       type: String,
       enum: [
-        "pending",
+        "created",
         "assigned",
         "picked_up",
         "in_transit",
-        "out_for_delivery",
         "delivered",
         "cancelled",
       ],
-      default: "pending",
-    },
-
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-
-    isDeleted: {
-      type: Boolean,
-      default: false,
+      default: "created",
     },
   },
   {
@@ -126,9 +87,10 @@ const shipmentSchema = new Schema<IShipment>(
   }
 );
 
-shipmentSchema.index({ shipmentNumber: 1 }, { unique: true });
-shipmentSchema.index({ status: 1 });
-shipmentSchema.index({ customer: 1 });
+shipmentSchema.index({ shipmentId: 1 }, { unique: true });
+shipmentSchema.index({ orgId: 1 });
+shipmentSchema.index({ assignedDriverId: 1 });
+shipmentSchema.index({ statusLifecycle: 1 });
 
 const Shipment = mongoose.model<IShipment>(
   "Shipment",
