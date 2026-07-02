@@ -10,11 +10,11 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: "*"
-    // process.env.CLIENT_URL ||
-    // "http://localhost:3000",
+    origin:
+    process.env.CLIENT_URL ||
+    "http://localhost:3000",
 
-    // credentials: true,
+    credentials: true,
   }),
 );
 
@@ -31,7 +31,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   if (
     err.isOperational ||
     err instanceof AppError ||
-    (err.statusCode && typeof err.statusCode === "number")
+    (err.statusCode && typeof err.statusCode === "number")  
   ) {
     res.status(err.statusCode).json({ error: err.message });
     return; 
@@ -41,4 +41,4 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: "Internal Server Error" });
 });
 
-export default app;
+export default app; 
