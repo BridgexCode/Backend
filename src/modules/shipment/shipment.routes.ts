@@ -10,21 +10,21 @@ import { Roles } from "../../common/constants/roles.js";
 const router = Router();
 
 router.post(
-  "/",
+  "/create-shipment",
   protectRoute,
   authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   createShipmentController,
 );
 
 router.get(
-  "/",
+  "/get-shipments",
   protectRoute,
   authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   getShipmentsController,
 );
 
 router.get(
-  "/:id",
+  "/shipmentById:id",
   protectRoute,
   authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   getShipmentByIdController,

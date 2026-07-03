@@ -1,6 +1,10 @@
 import { BadRequestError } from "../../common/errors/app-error.js";
 
 export const validateCreateShipment = (body: any) => {
+  if (!body) {
+    throw new BadRequestError("Request body is required");
+  }
+
   const { pickupLocation, destination, customerName, expectedDeliveryDate } =
     body;
 
