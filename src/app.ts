@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction  } from "express";
 import authRoutes from "./modules/auth/auth.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
 import shipmentRoutes from "./modules/shipment/shipment.routes.js";
@@ -43,14 +43,14 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   if (
     err.isOperational ||
     err instanceof AppError ||
-    (err.statusCode && typeof err.statusCode === "number")
+    (err.statusCode && typeof err.statusCode === "number")  
   ) {
     res.status(err.statusCode).json({ error: err.message });
-    return;
+    return; 
   }
 
   console.error("Unhandled Error:", err);
   res.status(500).json({ error: "Internal Server Error" });
 });
 
-export default app;
+export default app; 

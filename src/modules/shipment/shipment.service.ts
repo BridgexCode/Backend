@@ -4,6 +4,7 @@ import {
   CreateShipmentInput,
   ShipmentResponse,
   ShipmentStatus,
+  ShipmentTimelineEvent,
 } from "./shipment.types.js";
 
 const generateShipmentId = (): string => {
@@ -21,9 +22,26 @@ const VALID_STATUSES: ShipmentStatus[] = [
   "cancelled",
 ];
 
+const mapShipmentResponse = (doc: any): ShipmentResponse => ({
+  _id: doc._id.toString(),
+  shipmentId: doc.shipmentId,
+  orgId: doc.orgId.toString(),
+  pickupLocation: doc.pickupLocation,
+  destination: doc.destination,
+  customerName: doc.customerName,
+  assignedDriverId: doc.assignedDriverId?.toString(),
+  assignedOperationsManagerId: doc.assignedOperationsManagerId?.toString(),
+  expectedDeliveryDate: doc.expectedDeliveryDate,
+  statusLifecycle: doc.statusLifecycle,
+  timeline: doc.timeline || [],
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
+
 export const createShipment = async (
   data: CreateShipmentInput,
   organizationId: string,
+  createdByUserId?: string,
 ): Promise<ShipmentResponse> => {
   if (!organizationId) {
     throw new AppError(400, "Organization ID is required");
@@ -37,6 +55,13 @@ export const createShipment = async (
   const shipmentId = generateShipmentId();
   const now = new Date();
 
+  const timelineEvent = {
+    status: "created" as ShipmentStatus,
+    description: "Shipment created",
+    updatedBy: createdByUserId ? new mongoose.Types.ObjectId(createdByUserId) : null,
+    timestamp: now,
+  };
+
   const doc = {
     shipmentId,
     orgId: new mongoose.Types.ObjectId(organizationId),
@@ -46,27 +71,17 @@ export const createShipment = async (
     expectedDeliveryDate: new Date(data.expectedDeliveryDate),
     assignedDriverId: data.assignedDriverId
       ? new mongoose.Types.ObjectId(data.assignedDriverId)
-      : undefined,
+      : null,
+    assignedOperationsManagerId: null,
     statusLifecycle: "created" as ShipmentStatus,
+    timeline: [timelineEvent],
     createdAt: now,
     updatedAt: now,
   };
 
   await db.collection("shipment").insertOne(doc);
 
-  return {
-    _id: doc.shipmentId,
-    shipmentId: doc.shipmentId,
-    orgId: doc.orgId.toString(),
-    pickupLocation: doc.pickupLocation,
-    destination: doc.destination,
-    customerName: doc.customerName,
-    assignedDriverId: doc.assignedDriverId?.toString(),
-    expectedDeliveryDate: doc.expectedDeliveryDate,
-    statusLifecycle: doc.statusLifecycle,
-    createdAt: doc.createdAt,
-    updatedAt: doc.updatedAt,
-  };
+  return mapShipmentResponse(doc);
 };
 
 export const getShipments = async (
@@ -105,19 +120,7 @@ export const getShipments = async (
     db.collection("shipment").countDocuments(filter),
   ]);
 
-  const data: ShipmentResponse[] = docs.map((doc) => ({
-    _id: doc._id.toString(),
-    shipmentId: doc.shipmentId,
-    orgId: doc.orgId.toString(),
-    pickupLocation: doc.pickupLocation,
-    destination: doc.destination,
-    customerName: doc.customerName,
-    assignedDriverId: doc.assignedDriverId?.toString(),
-    expectedDeliveryDate: doc.expectedDeliveryDate,
-    statusLifecycle: doc.statusLifecycle,
-    createdAt: doc.createdAt,
-    updatedAt: doc.updatedAt,
-  }));
+  const data: ShipmentResponse[] = docs.map(mapShipmentResponse);
 
   return { data, total, page, limit };
 };
@@ -151,17 +154,232 @@ export const getShipmentById = async (
     throw new AppError(404, "Shipment not found");
   }
 
-  return {
-    _id: doc._id.toString(),
-    shipmentId: doc.shipmentId,
-    orgId: doc.orgId.toString(),
-    pickupLocation: doc.pickupLocation,
-    destination: doc.destination,
-    customerName: doc.customerName,
-    assignedDriverId: doc.assignedDriverId?.toString(),
-    expectedDeliveryDate: doc.expectedDeliveryDate,
-    statusLifecycle: doc.statusLifecycle,
-    createdAt: doc.createdAt,
-    updatedAt: doc.updatedAt,
+  return mapShipmentResponse(doc);
+};
+
+export const assignOperationsManager = async (
+  shipmentObjectId: string,
+  operationsManagerId: string,
+  organizationId: string,
+  updatedByUserId: string,
+): Promise<ShipmentResponse> => {
+  if (!organizationId) {
+    throw new AppError(400, "Organization ID is required");
+  }
+
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+
+  let objectId: mongoose.Types.ObjectId;
+  let managerId: mongoose.Types.ObjectId;
+  try {
+    objectId = new mongoose.Types.ObjectId(shipmentObjectId);
+    managerId = new mongoose.Types.ObjectId(operationsManagerId);
+  } catch {
+    throw new AppError(400, "Invalid ID format");
+  }
+
+  // Verify shipment exists
+  const shipment = await db.collection("shipment").findOne({
+    _id: objectId,
+    orgId: new mongoose.Types.ObjectId(organizationId),
+  });
+
+  if (!shipment) {
+    throw new AppError(404, "Shipment not found");
+  }
+
+  // Verify operations manager belongs to organization
+  const member = await db.collection("member").findOne({
+    userId: managerId,
+    organizationId: new mongoose.Types.ObjectId(organizationId),
+  });
+
+  if (!member) {
+    throw new AppError(400, "Operations Manager not found in this organization");
+  }
+
+  const now = new Date();
+  let newStatus = shipment.statusLifecycle;
+  if (shipment.statusLifecycle === "created") {
+    newStatus = "assigned";
+  }
+
+  const timelineEvent = {
+    status: newStatus,
+    description: "Operations Manager assigned to shipment",
+    updatedBy: new mongoose.Types.ObjectId(updatedByUserId),
+    timestamp: now,
   };
+
+  await db.collection("shipment").updateOne(
+    { _id: objectId },
+    {
+      $set: {
+        assignedOperationsManagerId: managerId,
+        statusLifecycle: newStatus,
+        updatedAt: now,
+      },
+      $push: {
+        timeline: timelineEvent,
+      } as any,
+    }
+  );
+
+  const updatedDoc = await db.collection("shipment").findOne({ _id: objectId });
+  if (!updatedDoc) {
+    throw new AppError(404, "Shipment not found after update");
+  }
+
+  return mapShipmentResponse(updatedDoc);
+};
+
+export const updateShipmentStatus = async (
+  shipmentObjectId: string,
+  status: ShipmentStatus,
+  organizationId: string,
+  updatedByUserId: string,
+): Promise<ShipmentResponse> => {
+  if (!organizationId) {
+    throw new AppError(400, "Organization ID is required");
+  }
+
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+
+  let objectId: mongoose.Types.ObjectId;
+  try {
+    objectId = new mongoose.Types.ObjectId(shipmentObjectId);
+  } catch {
+    throw new AppError(400, "Invalid shipment ID format");
+  }
+
+  const shipment = await db.collection("shipment").findOne({
+    _id: objectId,
+    orgId: new mongoose.Types.ObjectId(organizationId),
+  });
+
+  if (!shipment) {
+    throw new AppError(404, "Shipment not found");
+  }
+
+  const now = new Date();
+  const timelineEvent = {
+    status,
+    description: `Shipment status updated to: ${status.replace("_", " ")}`,
+    updatedBy: new mongoose.Types.ObjectId(updatedByUserId),
+    timestamp: now,
+  };
+
+  await db.collection("shipment").updateOne(
+    { _id: objectId },
+    {
+      $set: {
+        statusLifecycle: status,
+        updatedAt: now,
+      },
+      $push: {
+        timeline: timelineEvent,
+      } as any,
+    }
+  );
+
+  const updatedDoc = await db.collection("shipment").findOne({ _id: objectId });
+  if (!updatedDoc) {
+    throw new AppError(404, "Shipment not found after update");
+  }
+
+  return mapShipmentResponse(updatedDoc);
+};
+
+export const getOrganizationTimeline = async (
+  organizationId: string,
+): Promise<any[]> => {
+  if (!organizationId) {
+    throw new AppError(400, "Organization ID is required");
+  }
+
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+
+  const shipments = await db
+    .collection("shipment")
+    .find({ orgId: new mongoose.Types.ObjectId(organizationId) })
+    .toArray();
+
+  const allEvents: any[] = [];
+
+  for (const shipment of shipments) {
+    if (shipment.timeline && Array.isArray(shipment.timeline)) {
+      for (const event of shipment.timeline) {
+        allEvents.push({
+          id: `${shipment._id}-${event.timestamp?.getTime() || Math.random()}-${event.status}`,
+          shipmentId: shipment._id.toString(),
+          trackingId: shipment.shipmentId,
+          type: event.status === "created"
+            ? "creation"
+            : event.status === "assigned"
+              ? "assignment"
+              : event.status === "delivered"
+                ? "delivery"
+                : event.status === "cancelled"
+                  ? "failed"
+                  : "status",
+          title: event.status === "created"
+            ? "Shipment Created"
+            : event.status === "assigned"
+              ? "Shipment Assigned"
+              : event.status === "delivered"
+                ? "Shipment Delivered"
+                : event.status === "cancelled"
+                  ? "Shipment Cancelled"
+                  : "Status Updated",
+          description: event.description,
+          timestamp: event.timestamp || new Date(),
+          updatedBy: event.updatedBy?.toString() || null,
+        });
+      }
+    }
+  }
+
+  const userIds = allEvents.map((e) => e.updatedBy).filter(Boolean);
+  const userMap = new Map<string, string>();
+
+  if (userIds.length > 0) {
+    const objectIds = userIds.map((id) => new mongoose.Types.ObjectId(id));
+    const users = await db
+      .collection("user")
+      .find({ _id: { $in: objectIds } })
+      .toArray();
+    for (const u of users) {
+      userMap.set(u._id.toString(), u.name || u.email || "User");
+    }
+  }
+
+  for (const event of allEvents) {
+    event.user = event.updatedBy ? userMap.get(event.updatedBy) || "System" : "System";
+    const d = new Date(event.timestamp);
+    event.timestamp = d.toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
+
+  allEvents.sort((a, b) => {
+    const timeA = new Date(a.timestamp).getTime();
+    const timeB = new Date(b.timestamp).getTime();
+    return timeB - timeA;
+  });
+
+  return allEvents;
 };
