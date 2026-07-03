@@ -13,16 +13,16 @@ import { Roles } from "../../common/constants/roles.js";
 const router = Router();
 
 router.post(
-  "/",
+  "/create-shipment",
   protectRoute,
   authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   createShipmentController,
 );
 
 router.get(
-  "/",
+  "/get-shipments",
   protectRoute,
-  authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
+  authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),  
   getShipmentsController,
 );
 
@@ -50,8 +50,12 @@ router.put(
 router.patch(
   "/:id/status",
   protectRoute,
-  authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER, Roles.WORKER),
+  authorizeRoles(
+    Roles.ORGANIZATION_OWNER,
+    Roles.OPERATIONS_MANAGER,
+    Roles.WORKER
+  ),
   updateShipmentStatusController,
-);
+); 
 
-export default router;
+export default router; 
