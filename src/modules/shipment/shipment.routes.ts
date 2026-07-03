@@ -27,7 +27,6 @@ router.get(
 );
 
 router.get(
-<<<<<<< HEAD
   "/timeline",
   protectRoute,
   authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
@@ -36,9 +35,6 @@ router.get(
 
 router.get(
   "/:id",
-=======
-  "/shipmentById:id",
->>>>>>> a19e50ee0ef048c7bc0c3ca61bbf96400984b003
   protectRoute,
   authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   getShipmentByIdController,
@@ -54,7 +50,11 @@ router.put(
 router.patch(
   "/:id/status",
   protectRoute,
-  authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER, Roles.WORKER),
+  authorizeRoles(
+    Roles.ORGANIZATION_OWNER,
+    Roles.OPERATIONS_MANAGER,
+    Roles.WORKER
+  ),
   updateShipmentStatusController,
 );
 
