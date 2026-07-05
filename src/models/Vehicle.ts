@@ -66,7 +66,6 @@ vehicleSchema.index(
 );
 
 vehicleSchema.index({ orgId: 1 });
-vehicleSchema.index({ driverId: 1 });
 vehicleSchema.index({ status: 1 });
 vehicleSchema.index(
   { driverId: 1 },
