@@ -34,7 +34,7 @@ router.get(
 );
 
 router.get(
-  "/shipmentById:id",
+  "/shipmentById/:id",
   protectRoute,
   authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   getShipmentByIdController,

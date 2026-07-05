@@ -36,7 +36,7 @@ const shipmentSchema = new Schema<IShipment>(
 
     orgId: {
       type: Schema.Types.ObjectId,
-      ref: "Organization",
+      ref: "User",
       required: true,
     },
 
