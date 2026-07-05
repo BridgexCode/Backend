@@ -87,7 +87,6 @@ const shipmentSchema = new Schema<IShipment>(
   }
 );
 
-shipmentSchema.index({ shipmentId: 1 }, { unique: true });
 shipmentSchema.index({ orgId: 1 });
 shipmentSchema.index({ assignedDriverId: 1 });
 shipmentSchema.index({ statusLifecycle: 1 });
