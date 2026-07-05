@@ -18,7 +18,7 @@ const driverSchema = new Schema<IDriver>(
   {
     orgId: {
       type: Schema.Types.ObjectId,
-      ref: "Organization",
+      ref: "User",
       required: true,
     },
 
