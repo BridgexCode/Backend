@@ -27,14 +27,10 @@ export const getAuth = async (): Promise<any> => {
       } as any)
     ],
     trustedOrigins: [
-      "http://localhost:3000", // Allow your React/Next.js frontend
-      "http://localhost:5000" , // Allow same-origin (useful for some dev tools)
-      "https://logiflow-frontend-pink.vercel.app" //vercel link
+      "http://localhost:3000",
+      "http://localhost:5000",
+      "https://logiflow-frontend-pink.vercel.app",
     ],
-    advanced: {
-      // NOTE: Remove this in production if you only want to allow browser clients!
-      disableOriginCheck: true,
-    }
   });
 
   return authInstance;
