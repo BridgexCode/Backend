@@ -27,4 +27,13 @@ export interface DriverQuery {
   page?: string;
   limit?: string;
   status?: DriverStatus;
+  search?: string;
+}
+
+export interface UpdateDriverInput {
+  name?: string;
+  phone?: string;
+  licenseNumber?: string;
+  vehicleNumber?: string;
+  status?: DriverStatus;
 }
