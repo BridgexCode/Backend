@@ -32,3 +32,18 @@ export const validateCreateDriver = (body: any) => {
     );
   }
 };
+
+export const validateUpdateDriver = (body: any) => {
+  if (!body) {
+    throw new BadRequestError("Request body is required");
+  }
+
+  const { status } = body;
+  const allowedStatuses = ["available", "on_trip", "inactive"];
+
+  if (status && !allowedStatuses.includes(status)) {
+    throw new BadRequestError(
+      `status must be one of: ${allowedStatuses.join(", ")}`
+    );
+  }
+};
