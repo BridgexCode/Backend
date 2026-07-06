@@ -9,7 +9,6 @@ export const validateCreateDriver = (body: any) => {
     name,
     phone,
     licenseNumber,
-    vehicleNumber,
     status,
   } = body;
 
@@ -23,10 +22,6 @@ export const validateCreateDriver = (body: any) => {
 
   if (!licenseNumber) {
     throw new BadRequestError("licenseNumber is required");
-  }
-
-  if (!vehicleNumber) {
-    throw new BadRequestError("vehicleNumber is required");
   }
 
   const allowedStatuses = ["available", "on_trip", "inactive"];

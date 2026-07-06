@@ -36,7 +36,7 @@ const shipmentSchema = new Schema<IShipment>(
 
     orgId: {
       type: Schema.Types.ObjectId,
-      ref: "Organization",
+      ref: "User",
       required: true,
     },
 
@@ -87,7 +87,6 @@ const shipmentSchema = new Schema<IShipment>(
   }
 );
 
-shipmentSchema.index({ shipmentId: 1 }, { unique: true });
 shipmentSchema.index({ orgId: 1 });
 shipmentSchema.index({ assignedDriverId: 1 });
 shipmentSchema.index({ statusLifecycle: 1 });

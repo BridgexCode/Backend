@@ -27,16 +27,9 @@ router.get(
   getDriversController,
 );
 
-router.get(
-  "/",
-  protectRoute,
-  authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
-  getDriversController,
-);
-
 // Get Driver By ID
 router.get(
-  "/:id",
+  "/get-driverById/:id",
   protectRoute,
   authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   getDriverByIdController,
@@ -44,7 +37,7 @@ router.get(
 
 // Update Driver
 router.put(
-  "/:id",
+  "/update-driver/:id",
   protectRoute,
   authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   updateDriverController,
@@ -52,7 +45,7 @@ router.put(
 
 // Delete Driver
 router.delete(
-  "/:id",
+  "/delete-driver/:id",
   protectRoute,
   authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   deleteDriverController,

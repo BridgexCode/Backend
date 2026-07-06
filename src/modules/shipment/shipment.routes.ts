@@ -54,7 +54,7 @@ router.get(
 
 // Get Shipment By ID
 router.get(
-  "/:id",
+  "/shipmentById/:id",
   protectRoute,
   authorizeRoles(
     Roles.ORGANIZATION_OWNER,
