@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export type VehicleType =
   | "truck"
@@ -36,6 +36,22 @@ export interface VehicleResponse {
   driverId?: Types.ObjectId;
   status: VehicleStatus;
   orgId: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IVehicle extends Document {
+  vehicleNumber: string;
+  orgId: Types.ObjectId;
+
+  vehicleModel: string;
+
+  type: VehicleType;
+
+  driverId?: Types.ObjectId;
+
+  status: VehicleStatus;
+
   createdAt: Date;
   updatedAt: Date;
 }

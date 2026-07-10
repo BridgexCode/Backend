@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import { AuthRequest } from "../auth/auth.types.js";
 import { validateCreateDriver, validateUpdateDriver } from "./driver.validation.js";
 import * as DriverService from "./driver.service.js";
+import { asyncHandler } from "../../common/utils/asyncHandler.js";
 
 export const getAllDriversController = async (
   req: AuthRequest,
@@ -24,32 +25,30 @@ export const getAllDriversController = async (
   }
 };
 
-export const createDriverController = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    validateCreateDriver(req.body);
+export const createDriverController = asyncHandler(
+  async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+      const validatedData = validateCreateDriver.parse(req.body)
 
-    if (!req.user?.organizationId) {
-      res.status(400).json({ error: "Organization ID not found" });
-      return;
-    }
+      if (!req.user?.organizationId) {
+        res.status(400).json({ error: "Organization ID not found" });
+        return;
+      }
 
-    const driver = await DriverService.createDriver(
-      req.body,
-      req.user.organizationId,
-    );
+      const driver = await DriverService.createDriver(
+        validatedData,
+        req.user.organizationId,
+      );
 
-    res.status(201).json({
-      message: "Driver created successfully",
-      data: driver,
-    });
-  } catch (error) {
-    next(error);
+      res.status(201).json({
+        message: "Driver created successfully",
+        data: driver,
+      });
   }
-};
+);
 
 export const getDriversController = async (
   req: AuthRequest,
