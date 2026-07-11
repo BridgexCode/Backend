@@ -32,6 +32,11 @@ const driverSchema = new Schema<IDriver>(
       trim: true,
     },
 
+    telegramId: {
+      type: String,
+      default: null,
+    },
+
     status: {
       type: String,
       enum: ["available", "on_trip", "inactive"],

@@ -14,7 +14,7 @@ export interface IDriver extends Document {
   phone: string;
   licenseNumber: string;
   vehicleNumber?: string;
-
+  telegramId?:string;
   status: DriverStatus;
 
   createdAt: Date;
