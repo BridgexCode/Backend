@@ -1,29 +1,5 @@
-import mongoose, { Document, Schema, Types } from "mongoose";
-
-export interface IShipment extends Document {
-  shipmentId: string;
-  orgId: Types.ObjectId;
-
-  pickupLocation: string;
-  destination: string;
-
-  customerName: string;
-
-  assignedDriverId?: Types.ObjectId;
-
-  expectedDeliveryDate: Date;
-
-  statusLifecycle:
-    | "created"
-    | "assigned"
-    | "picked_up"
-    | "in_transit"
-    | "delivered"
-    | "cancelled";
-
-  createdAt: Date;
-  updatedAt: Date;
-}
+import mongoose, { Schema } from "mongoose";
+import { IShipment } from "../modules/shipment/shipment.types.js";
 
 const shipmentSchema = new Schema<IShipment>(
   {

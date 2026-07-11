@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export type ShipmentStatus =
   | "created"
@@ -51,4 +51,23 @@ export interface ShipmentQuery {
   page?: string;
   limit?: string;
   status?: ShipmentStatus;
+}
+
+export interface IShipment extends Document {
+  shipmentId: string;
+  orgId: Types.ObjectId;
+
+  pickupLocation: string;
+  destination: string;
+
+  customerName: string;
+
+  assignedDriverId?: Types.ObjectId;
+
+  expectedDeliveryDate: Date;
+
+  statusLifecycle:ShipmentStatus;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
