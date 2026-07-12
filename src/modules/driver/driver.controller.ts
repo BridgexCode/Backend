@@ -107,39 +107,37 @@ export const getDriverByIdController = async (
   }
 };
 
-export const updateDriverController = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    validateUpdateDriver(req.body);
+export const updateDriverController = asyncHandler(
+  async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+      const validatedData = validateUpdateDriver.parse(req.body);
 
-    if (!req.user?.organizationId) {
-      res.status(400).json({ error: "Organization ID not found" });
-      return;
-    }
+      if (!req.user?.organizationId) {
+        res.status(400).json({ error: "Organization ID not found" });
+        return;
+      }
 
-    const id = req.params.id as string;
-    if (!id) {
-      res.status(400).json({ error: "Driver ID is required" });
-      return;
-    }
+      const id = req.params.id as string;
+      if (!id) {
+        res.status(400).json({ error: "Driver ID is required" });
+        return;
+      }
 
-    const driver = await DriverService.updateDriver(
-      id,
-      req.body,
-      req.user.organizationId,
-    );
+      const driver = await DriverService.updateDriver(
+        id,
+        validatedData,
+        req.user.organizationId,
+      );
 
-    res.status(200).json({
-      message: "Driver updated successfully",
-      data: driver,
-    });
-  } catch (error) {
-    next(error);
+      res.status(200).json({
+        message: "Driver updated successfully",
+        data: driver,
+      });
   }
-};
+);
 
 export const deleteDriverController = async (
   req: AuthRequest,

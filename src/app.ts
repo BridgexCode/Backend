@@ -5,6 +5,7 @@ import shipmentRoutes from "./modules/shipment/shipment.routes.js";
 import driverRoutes from "./modules/driver/driver.routes.js"
 import vehicleRoutes from "./modules/vehicle/vehicle.routes.js"
 import userDashboardRoutes from "./modules/userDashboard/dashboard.routes.js"
+import superAdminRoutes from "./modules/superAdmin/superAdmin.rotes.js"
 import { betterAuthHandler } from "./modules/auth/auth.controller.js";
 import cors from "cors";
 import { AppError } from "./common/errors/app-error.js";
@@ -43,6 +44,7 @@ app.use("/api/shipments", shipmentRoutes);
 app.use("/api/drivers", driverRoutes)
 app.use("/api/vehicles", vehicleRoutes)
 app.use("/api/userDashboard", userDashboardRoutes)
+app.use("/api/superAdmin",superAdminRoutes)
 
 // Global JSON Error Handler
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
