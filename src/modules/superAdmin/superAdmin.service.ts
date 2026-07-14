@@ -24,7 +24,7 @@ export const getAllOrganizations = async (): Promise<
   }
 
   const docs = await db
-    .collection("user")
+    .collection("organization")
     .find({})
     .sort({ createdAt: -1 })
     .toArray();
@@ -49,7 +49,7 @@ export const getOrganizationById = async (
     throw new AppError(400, "Invalid organization ID format");
   }
 
-  const doc = await db.collection("user").findOne({
+  const doc = await db.collection("organization").findOne({
     _id: objectId,
   });
 
@@ -71,7 +71,7 @@ export const getDashboardStats =
     const [
       totalOrganizations
     ] = await Promise.all([
-      db.collection("user").countDocuments()
+      db.collection("organization").countDocuments()
     ]);
 
     return {
@@ -97,7 +97,7 @@ export const getDashboardStats =
     throw new AppError(400, "Invalid organization ID format");
   }
 
-  const organization = await db.collection("user").findOne({
+  const organization = await db.collection("organization").findOne({
     _id: objectId,
   });
 
@@ -105,7 +105,7 @@ export const getDashboardStats =
     throw new AppError(404, "Organization not found");
   }
 
-  await db.collection("use").updateOne(
+  await db.collection("organization").updateOne(
     { _id: objectId },
     {
       $set: {
@@ -115,7 +115,7 @@ export const getDashboardStats =
     },
   );
 
-  const updatedOrganization = await db.collection("user").findOne({
+  const updatedOrganization = await db.collection("organization").findOne({
     _id: objectId,
   });
 
@@ -143,7 +143,7 @@ export const deleteOrganization = async (
     throw new AppError(400, "Invalid organization ID format");
   }
 
-  const result = await db.collection("user").deleteOne({
+  const result = await db.collection("organization").deleteOne({
     _id: objectId,
   });
 
