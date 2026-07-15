@@ -133,6 +133,11 @@ export const getDashboardStats = async (): Promise<DashboardResponse> => {
     time: formatRelativeTime(log.timestamp),
     type: log.type === "error" ? "error" as const : "info" as const,
   }));
+    const [
+      totalOrganizations
+    ] = await Promise.all([
+      db.collection("organization").countDocuments()
+    ]);
 
   return {
     totalOrganizations,
@@ -173,6 +178,8 @@ export const updateOrganizationStatus = async (
     ip: "",
     type: status === "inactive" ? "error" : "info",
     timestamp: new Date(),
+  const updatedOrganization = await db.collection("organization").findOne({
+    _id: objectId,
   });
 
   const updatedDoc = await db.collection("organization").findOne({ _id: objectId });

@@ -14,6 +14,8 @@ import {
   getSettingsController,
   updateSettingsController,
 } from "./superAdmin.controller.js";
+import { protectRoute, authorizeRoles } from "../auth/auth.middleware.js";
+import { Roles } from "../../common/constants/roles.js";
 
 const router = Router();
 
