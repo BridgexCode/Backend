@@ -6,6 +6,8 @@ import {
   getShipmentsController,
   getShipmentByIdController,
   assignOperationsManagerController,
+  assignDriverController,
+  updateShipmentController,
   updateShipmentStatusController,
   getShipmentsTimelineController,
 } from "./shipment.controller.js";
@@ -24,6 +26,7 @@ router.post(
   "/create-shipment",
   protectRoute,
   authorizeRoles(
+    Roles.SUPER_ADMIN,
     Roles.ORGANIZATION_OWNER,
     Roles.OPERATIONS_MANAGER
   ),
@@ -35,6 +38,7 @@ router.get(
   "/get-shipments",
   protectRoute,
   authorizeRoles(
+    Roles.SUPER_ADMIN,
     Roles.ORGANIZATION_OWNER,
     Roles.OPERATIONS_MANAGER
   ),
@@ -46,6 +50,7 @@ router.get(
   "/timeline",
   protectRoute,
   authorizeRoles(
+    Roles.SUPER_ADMIN,
     Roles.ORGANIZATION_OWNER,
     Roles.OPERATIONS_MANAGER
   ),
@@ -57,6 +62,7 @@ router.get(
   "/shipmentById/:id",
   protectRoute,
   authorizeRoles(
+    Roles.SUPER_ADMIN,
     Roles.ORGANIZATION_OWNER,
     Roles.OPERATIONS_MANAGER
   ),
@@ -68,10 +74,35 @@ router.put(
   "/:id/assign-manager",
   protectRoute,
   authorizeRoles(
+    Roles.SUPER_ADMIN,
     Roles.ORGANIZATION_OWNER,
     Roles.OPERATIONS_MANAGER
   ),
   assignOperationsManagerController,
+);
+
+// Assign Driver
+router.put(
+  "/:id/assign-driver",
+  protectRoute,
+  authorizeRoles(
+    Roles.SUPER_ADMIN,
+    Roles.ORGANIZATION_OWNER,
+    Roles.OPERATIONS_MANAGER
+  ),
+  assignDriverController,
+);
+
+// Update Shipment
+router.put(
+  "/:id",
+  protectRoute,
+  authorizeRoles(
+    Roles.SUPER_ADMIN,
+    Roles.ORGANIZATION_OWNER,
+    Roles.OPERATIONS_MANAGER
+  ),
+  updateShipmentController,
 );
 
 // Update Shipment Status
@@ -79,6 +110,7 @@ router.patch(
   "/:id/status",
   protectRoute,
   authorizeRoles(
+    Roles.SUPER_ADMIN,
     Roles.ORGANIZATION_OWNER,
     Roles.OPERATIONS_MANAGER,
     Roles.WORKER

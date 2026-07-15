@@ -1,39 +1,38 @@
 import { Router } from "express";
+import { protectRoute, authorizeRoles } from "../auth/auth.middleware.js";
+import { Roles } from "../../common/constants/roles.js";
 import {
   getDashboardController,
   getOrganizationsController,
   getOrganizationByIdController,
   updateOrganizationStatusController,
   deleteOrganizationController,
+  getMonthlyShipmentsController,
+  getPlanDistributionController,
+  getOrganizationGrowthController,
+  getAuditLogsController,
+  getSettingsController,
+  updateSettingsController,
 } from "./superAdmin.controller.js";
 
 const router = Router();
 
-// Dashboard
-router.get(
-  "/dashboard",
-  getDashboardController,
-);
+router.use(protectRoute, authorizeRoles(Roles.SUPER_ADMIN));
 
-// Organizations
-router.get(
-  "/organizations",
-  getOrganizationsController,
-);
+router.get("/dashboard", getDashboardController);
 
-router.get(
-  "/organizations/:id",
-  getOrganizationByIdController,
-);
+router.get("/organizations", getOrganizationsController);
+router.get("/organizations/:id", getOrganizationByIdController);
+router.patch("/organizations/:id/status", updateOrganizationStatusController);
+router.delete("/organizations/:id", deleteOrganizationController);
 
-router.patch(
-  "/organizations/:id/status",
-  updateOrganizationStatusController,
-);
+router.get("/reports/monthly-shipments", getMonthlyShipmentsController);
+router.get("/reports/plan-distribution", getPlanDistributionController);
+router.get("/reports/organization-growth", getOrganizationGrowthController);
 
-router.delete(
-  "/organizations/:id",
-  deleteOrganizationController,
-);
+router.get("/audit-logs", getAuditLogsController);
+
+router.get("/settings", getSettingsController);
+router.put("/settings", updateSettingsController);
 
 export default router;

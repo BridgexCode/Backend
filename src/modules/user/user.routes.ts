@@ -14,34 +14,34 @@ const router = Router();
 router.get(
   "/",
   protectRoute,
-  authorizeRoles(Roles.ORGANIZATION_OWNER),
+  authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   getManagersController,
 );
 
 router.post(
   "/",
   protectRoute,
-  authorizeRoles(Roles.ORGANIZATION_OWNER),
+  authorizeRoles(Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   createUserController,
 );
 
 router.patch(
   "/:id/soft-delete",
   protectRoute,
-  authorizeRoles(Roles.SUPER_ADMIN, Roles.ORGANIZATION_OWNER),
+  authorizeRoles(Roles.SUPER_ADMIN, Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   softDeleteUserController,
 );
 router.patch(
   "/:id/update-user",
   protectRoute,
-  authorizeRoles(Roles.SUPER_ADMIN, Roles.ORGANIZATION_OWNER),
+  authorizeRoles(Roles.SUPER_ADMIN, Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   updateUserController,
 );
 
 router.patch(
   "/:id/toggle-active",
   protectRoute,
-  authorizeRoles(Roles.SUPER_ADMIN, Roles.ORGANIZATION_OWNER),
+  authorizeRoles(Roles.SUPER_ADMIN, Roles.ORGANIZATION_OWNER, Roles.OPERATIONS_MANAGER),
   toggleActiveUserController,
 );
 
