@@ -9,6 +9,13 @@ const driverSchema = new Schema<IDriver>(
       required: true,
     },
 
+    driverId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+
     name: {
       type: String,
       required: true,

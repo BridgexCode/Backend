@@ -16,6 +16,7 @@ const VALID_STATUSES: DriverStatus[] = [
 
 const mapDriverResponse = (doc: any): DriverResponse => ({
   _id: doc._id.toString(),
+  driverId: doc.driverId,
   orgId: doc.orgId.toString(),
   name: doc.name,
   phone: doc.phone,
@@ -66,9 +67,11 @@ export const createDriver = async (
   }
 
   const now = new Date();
+  const driverId = `DRV${Date.now()}`;
 
   const doc = {
     _id: new mongoose.Types.ObjectId(),
+    driverId,
     orgId: new mongoose.Types.ObjectId(organizationId),
     name: data.name,
     phone: data.phone,

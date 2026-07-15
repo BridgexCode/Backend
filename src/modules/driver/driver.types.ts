@@ -12,6 +12,7 @@ export interface IDriver extends Document {
 
   name: string;
   phone: string;
+  driverId:string;
   licenseNumber: string;
   vehicleNumber?: string;
   telegramId?:string;
@@ -27,6 +28,7 @@ export type CreateDriverInput = z.infer<
 
 export interface DriverResponse {
   _id: string;
+  driverId: string;
   orgId: string;
   name: string;
   phone: string;

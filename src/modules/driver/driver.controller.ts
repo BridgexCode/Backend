@@ -4,26 +4,24 @@ import { validateCreateDriver, validateUpdateDriver } from "./driver.validation.
 import * as DriverService from "./driver.service.js";
 import { asyncHandler } from "../../common/utils/asyncHandler.js";
 
-export const getAllDriversController = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    if (!req.user?.organizationId) {
-      res.status(400).json({ error: "Organization ID not found" });
-      return;
-    }
+export const getAllDriversController = asyncHandler(
+  async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+      if (!req.user?.organizationId) {
+        res.status(400).json({ error: "Organization ID not found" });
+        return;
+      }
 
-    const drivers = await DriverService.getAllDrivers(
-      req.user.organizationId,
-    );
+      const drivers = await DriverService.getAllDrivers(
+        req.user.organizationId,
+      );
 
-    res.status(200).json({ data: drivers });
-  } catch (error) {
-    next(error);
+      res.status(200).json({ data: drivers });
   }
-};
+);
 
 export const createDriverController = asyncHandler(
   async (
