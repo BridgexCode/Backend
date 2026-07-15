@@ -6,8 +6,13 @@ import {
   updateOrganizationStatusController,
   deleteOrganizationController,
 } from "./superAdmin.controller.js";
+import { protectRoute, authorizeRoles } from "../auth/auth.middleware.js";
+import { Roles } from "../../common/constants/roles.js";
 
 const router = Router();
+
+router.use(protectRoute);
+router.use(authorizeRoles(Roles.SUPER_ADMIN));
 
 // Dashboard
 router.get(
