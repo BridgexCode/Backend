@@ -131,13 +131,8 @@ export const getDashboardStats = async (): Promise<DashboardResponse> => {
     event: log.event,
     description: log.description,
     time: formatRelativeTime(log.timestamp),
-    type: log.type === "error" ? "error" as const : "info" as const,
+    type: log.type === "error" ? ("error" as const) : ("info" as const),
   }));
-    const [
-      totalOrganizations
-    ] = await Promise.all([
-      db.collection("organization").countDocuments()
-    ]);
 
   return {
     totalOrganizations,
@@ -178,9 +173,7 @@ export const updateOrganizationStatus = async (
     ip: "",
     type: status === "inactive" ? "error" : "info",
     timestamp: new Date(),
-  const updatedOrganization = await db.collection("organization").findOne({
-    _id: objectId,
-  });
+  }); // 👈 വിട്ടുപോയ ബ്രാക്കറ്റ് ഇവിടെ ഇട്ടു ശരിയാക്കി!
 
   const updatedDoc = await db.collection("organization").findOne({ _id: objectId });
   if (!updatedDoc) throw new AppError(404, "Organization not found after update");
