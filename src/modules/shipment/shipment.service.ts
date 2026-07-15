@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { AppError } from "../../common/errors/app-error.js";
+import { getIO } from "../socket/socket.js";
 import {
   CreateShipmentInput,
   ShipmentResponse,
@@ -20,6 +21,7 @@ const VALID_STATUSES: ShipmentStatus[] = [
   "in_transit",
   "delivered",
   "cancelled",
+  "delayed",
 ];
 
 const mapShipmentResponse = (doc: any): ShipmentResponse => ({
@@ -30,10 +32,12 @@ const mapShipmentResponse = (doc: any): ShipmentResponse => ({
   destination: doc.destination,
   customerName: doc.customerName,
   assignedDriverId: doc.assignedDriverId?.toString(),
+  assignedVehicleId: doc.assignedVehicleId?.toString(),
   assignedOperationsManagerId: doc.assignedOperationsManagerId?.toString(),
   expectedDeliveryDate: doc.expectedDeliveryDate,
   statusLifecycle: doc.statusLifecycle,
   timeline: doc.timeline || [],
+  notes: doc.notes || "",
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
 });
@@ -62,7 +66,7 @@ export const createShipment = async (
     timestamp: now,
   };
 
-  const doc = {
+  const doc: Record<string, unknown> = {
     shipmentId,
     orgId: new mongoose.Types.ObjectId(organizationId),
     pickupLocation: data.pickupLocation,
@@ -72,9 +76,13 @@ export const createShipment = async (
     assignedDriverId: data.assignedDriverId
       ? new mongoose.Types.ObjectId(data.assignedDriverId)
       : null,
+    assignedVehicleId: data.assignedVehicleId
+      ? new mongoose.Types.ObjectId(data.assignedVehicleId)
+      : null,
     assignedOperationsManagerId: null,
     statusLifecycle: "created" as ShipmentStatus,
     timeline: [timelineEvent],
+    notes: data.notes || "",
     createdAt: now,
     updatedAt: now,
   };
@@ -236,6 +244,174 @@ export const assignOperationsManager = async (
   return mapShipmentResponse(updatedDoc);
 };
 
+export const updateShipment = async (
+  shipmentObjectId: string,
+  data: Record<string, unknown>,
+  organizationId: string,
+  updatedByUserId: string,
+): Promise<ShipmentResponse> => {
+  if (!organizationId) {
+    throw new AppError(400, "Organization ID is required");
+  }
+
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+
+  let objectId: mongoose.Types.ObjectId;
+  try {
+    objectId = new mongoose.Types.ObjectId(shipmentObjectId);
+  } catch {
+    throw new AppError(400, "Invalid shipment ID format");
+  }
+
+  const shipment = await db.collection("shipment").findOne({
+    _id: objectId,
+    orgId: new mongoose.Types.ObjectId(organizationId),
+  });
+
+  if (!shipment) {
+    throw new AppError(404, "Shipment not found");
+  }
+
+  const allowedFields = ["pickupLocation", "destination", "customerName", "expectedDeliveryDate", "notes"];
+  const $set: Record<string, unknown> = { updatedAt: new Date() };
+
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      $set[field] = data[field];
+    }
+  }
+
+  const timelineEvent = {
+    status: shipment.statusLifecycle,
+    description: "Shipment details updated",
+    updatedBy: new mongoose.Types.ObjectId(updatedByUserId),
+    timestamp: new Date(),
+  };
+
+  await db.collection("shipment").updateOne(
+    { _id: objectId },
+    {
+      $set,
+      $push: {
+        timeline: timelineEvent,
+      } as any,
+    }
+  );
+
+  const updatedDoc = await db.collection("shipment").findOne({ _id: objectId });
+  if (!updatedDoc) {
+    throw new AppError(404, "Shipment not found after update");
+  }
+
+  try {
+    getIO().emit("shipment:updated", {
+      _id: shipmentObjectId,
+      status: updatedDoc.statusLifecycle,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch {}
+
+  return mapShipmentResponse(updatedDoc);
+};
+
+export const assignDriver = async (
+  shipmentObjectId: string,
+  driverId: string,
+  organizationId: string,
+  updatedByUserId: string,
+  vehicleId?: string,
+): Promise<ShipmentResponse> => {
+  if (!organizationId) {
+    throw new AppError(400, "Organization ID is required");
+  }
+
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+
+  let objectId: mongoose.Types.ObjectId;
+  let driverObjectId: mongoose.Types.ObjectId;
+  try {
+    objectId = new mongoose.Types.ObjectId(shipmentObjectId);
+    driverObjectId = new mongoose.Types.ObjectId(driverId);
+  } catch {
+    throw new AppError(400, "Invalid ID format");
+  }
+
+  const shipment = await db.collection("shipment").findOne({
+    _id: objectId,
+    orgId: new mongoose.Types.ObjectId(organizationId),
+  });
+
+  if (!shipment) {
+    throw new AppError(404, "Shipment not found");
+  }
+
+  const driver = await db.collection("driver").findOne({
+    _id: driverObjectId,
+    orgId: new mongoose.Types.ObjectId(organizationId),
+  });
+
+  if (!driver) {
+    throw new AppError(400, "Driver not found in this organization");
+  }
+
+  const now = new Date();
+  let newStatus = shipment.statusLifecycle;
+  if (shipment.statusLifecycle === "created") {
+    newStatus = "assigned";
+  }
+
+  const timelineEvent = {
+    status: newStatus,
+    description: `Driver ${driver.name || driver.driverId} assigned to shipment`,
+    updatedBy: new mongoose.Types.ObjectId(updatedByUserId),
+    timestamp: now,
+  };
+
+  const $set: Record<string, unknown> = {
+    assignedDriverId: driverObjectId,
+    statusLifecycle: newStatus,
+    updatedAt: now,
+  };
+  if (vehicleId) {
+    try {
+      $set.assignedVehicleId = new mongoose.Types.ObjectId(vehicleId);
+    } catch {}
+  }
+
+  await db.collection("shipment").updateOne(
+    { _id: objectId },
+    {
+      $set,
+      $push: {
+        timeline: timelineEvent,
+      } as any,
+    }
+  );
+
+  const updatedDoc = await db.collection("shipment").findOne({ _id: objectId });
+  if (!updatedDoc) {
+    throw new AppError(404, "Shipment not found after update");
+  }
+
+  try {
+    getIO().emit("shipment:updated", {
+      _id: shipmentObjectId,
+      status: updatedDoc.statusLifecycle,
+      assignedDriverId: updatedDoc.assignedDriverId?.toString(),
+      assignedVehicleId: updatedDoc.assignedVehicleId?.toString(),
+      updatedAt: new Date().toISOString(),
+    });
+  } catch {}
+
+  return mapShipmentResponse(updatedDoc);
+};
+
 export const updateShipmentStatus = async (
   shipmentObjectId: string,
   status: ShipmentStatus,
@@ -292,6 +468,14 @@ export const updateShipmentStatus = async (
   if (!updatedDoc) {
     throw new AppError(404, "Shipment not found after update");
   }
+
+  try {
+    getIO().emit("shipment:updated", {
+      _id: shipmentObjectId,
+      status: updatedDoc.statusLifecycle,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch {}
 
   return mapShipmentResponse(updatedDoc);
 };

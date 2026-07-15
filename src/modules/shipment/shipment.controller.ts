@@ -3,6 +3,8 @@ import { AuthRequest } from "../auth/auth.types.js";
 import {
   validateCreateShipment,
   validateAssignOperationsManager,
+  validateAssignDriver,
+  validateUpdateShipment,
   validateUpdateShipmentStatus,
 } from "./shipment.validation.js";
 import * as ShipmentService from "./shipment.service.js";
@@ -120,6 +122,77 @@ export const assignOperationsManagerController = async (
 
     res.status(200).json({
       message: "Operations Manager assigned successfully",
+      data: shipment,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateShipmentController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    validateUpdateShipment(req.body);
+
+    if (!req.user?.organizationId) {
+      res.status(400).json({ error: "Organization ID not found" });
+      return;
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      res.status(400).json({ error: "Shipment ID is required" });
+      return;
+    }
+
+    const shipment = await ShipmentService.updateShipment(
+      id as string,
+      req.body,
+      req.user.organizationId,
+      req.user.id,
+    );
+
+    res.status(200).json({
+      message: "Shipment updated successfully",
+      data: shipment,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const assignDriverController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    validateAssignDriver(req.body);
+
+    if (!req.user?.organizationId) {
+      res.status(400).json({ error: "Organization ID not found" });
+      return;
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      res.status(400).json({ error: "Shipment ID is required" });
+      return;
+    }
+
+    const shipment = await ShipmentService.assignDriver(
+      id as string,
+      req.body.driverId,
+      req.user.organizationId,
+      req.user.id,
+      req.body.vehicleId,
+    );
+
+    res.status(200).json({
+      message: "Driver assigned successfully",
       data: shipment,
     });
   } catch (error) {

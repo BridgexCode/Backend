@@ -3,6 +3,12 @@ import { IDriver } from "../modules/driver/driver.types.js";
 
 const driverSchema = new Schema<IDriver>(
   {
+    driverId: {
+      type: String,
+      unique: true,
+      trim: true,
+    },
+
     orgId: {
       type: Schema.Types.ObjectId,
       ref: "User",

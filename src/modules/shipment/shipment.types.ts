@@ -6,7 +6,8 @@ export type ShipmentStatus =
   | "picked_up"
   | "in_transit"
   | "delivered"
-  | "cancelled";
+  | "cancelled"
+  | "delayed";
 
 export interface ShipmentTimelineEvent {
   status: ShipmentStatus;
@@ -20,11 +21,26 @@ export interface CreateShipmentInput {
   destination: string;
   customerName: string;
   assignedDriverId?: string;
+  assignedVehicleId?: string;
   expectedDeliveryDate: string;
+  notes?: string;
 }
 
 export interface AssignOperationsManagerInput {
   operationsManagerId: string;
+}
+
+export interface AssignDriverInput {
+  driverId: string;
+  vehicleId?: string;
+}
+
+export interface UpdateShipmentInput {
+  pickupLocation?: string;
+  destination?: string;
+  customerName?: string;
+  expectedDeliveryDate?: string;
+  notes?: string;
 }
 
 export interface UpdateShipmentStatusInput {
@@ -39,10 +55,12 @@ export interface ShipmentResponse {
   destination: string;
   customerName: string;
   assignedDriverId?: string;
+  assignedVehicleId?: string;
   assignedOperationsManagerId?: string;
   expectedDeliveryDate: Date;
   statusLifecycle: ShipmentStatus;
   timeline?: ShipmentTimelineEvent[];
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +81,7 @@ export interface IShipment extends Document {
   customerName: string;
 
   assignedDriverId?: Types.ObjectId;
+  assignedVehicleId?: Types.ObjectId;
 
   expectedDeliveryDate: Date;
 

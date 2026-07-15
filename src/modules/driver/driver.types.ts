@@ -8,13 +8,14 @@ export type DriverStatus =
   | "inactive";
 
 export interface IDriver extends Document {
+  driverId?: string;
   orgId: Types.ObjectId;
 
   name: string;
   phone: string;
   licenseNumber: string;
   vehicleNumber?: string;
-  telegramId?:string;
+  telegramId?: string;
   status: DriverStatus;
 
   createdAt: Date;
@@ -27,11 +28,13 @@ export type CreateDriverInput = z.infer<
 
 export interface DriverResponse {
   _id: string;
+  driverId?: string;
   orgId: string;
   name: string;
   phone: string;
   licenseNumber: string;
   vehicleNumber: string;
+  telegramId?: string;
   status: DriverStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -49,5 +52,6 @@ export interface UpdateDriverInput {
   phone?: string;
   licenseNumber?: string;
   vehicleNumber?: string;
+  telegramId?: string;
   status?: DriverStatus;
 }

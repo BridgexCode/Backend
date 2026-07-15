@@ -90,8 +90,11 @@ export const getManagersController = async (
       return;
     }
 
+    const role = req.query.role as string | undefined;
+
     const managers = await UserService.getManagersByOrganization(
       req.user.organizationId,
+      role,
     );
 
     res.json({ data: managers });

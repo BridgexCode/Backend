@@ -282,18 +282,26 @@ export const updateUser = async (
   };
 };
 
-export const getManagersByOrganization = async (organizationId: string) => {
+export const getManagersByOrganization = async (
+  organizationId: string,
+  roleFilter?: string,
+) => {
   const db = mongoose.connection.db;
   if (!db) {
     throw new AppError(500, "Database connection not ready");
   }
 
+  const matchFilter: Record<string, any> = {
+    organizationId: new mongoose.Types.ObjectId(organizationId),
+  };
+
+  if (roleFilter) {
+    matchFilter.customRole = roleFilter;
+  }
+
   const members = await db
     .collection("member")
-    .find({
-      organizationId: new mongoose.Types.ObjectId(organizationId),
-      customRole: Roles.OPERATIONS_MANAGER,
-    })
+    .find(matchFilter)
     .toArray();
 
   if (members.length === 0) return [];

@@ -53,6 +53,7 @@ const shipmentSchema = new Schema<IShipment>(
         "in_transit",
         "delivered",
         "cancelled",
+        "delayed",
       ],
       default: "created",
     },

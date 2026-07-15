@@ -6,7 +6,9 @@ import driverRoutes from "./modules/driver/driver.routes.js"
 import vehicleRoutes from "./modules/vehicle/vehicle.routes.js"
 import userDashboardRoutes from "./modules/userDashboard/dashboard.routes.js"
 import superAdminRoutes from "./modules/superAdmin/superAdmin.rotes.js"
+import telegramRoutes from "./modules/telegram/telegram.routes.js"
 import { betterAuthHandler } from "./modules/auth/auth.controller.js";
+import { seedSuperAdmin } from "./modules/superAdmin/superAdmin.seed.js";
 import cors from "cors";
 import { AppError } from "./common/errors/app-error.js";
 
@@ -37,6 +39,16 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+// Setup endpoint - seeds super admin if not exists
+app.post("/api/setup", async (_req, res) => {
+  try {
+    await seedSuperAdmin();
+    res.json({ success: true, message: "Setup complete. Try admin@naxivo.com / admin123" });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.use("/api/auth", authRoutes);
 app.all("/api/auth/{*any}", betterAuthHandler);
 app.use("/api/users", userRoutes);
@@ -45,6 +57,7 @@ app.use("/api/drivers", driverRoutes)
 app.use("/api/vehicles", vehicleRoutes)
 app.use("/api/userDashboard", userDashboardRoutes)
 app.use("/api/superAdmin",superAdminRoutes)
+app.use("/api/telegram", telegramRoutes)
 
 // Global JSON Error Handler
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
