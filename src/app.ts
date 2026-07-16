@@ -50,7 +50,7 @@ app.post("/api/setup", async (_req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
-app.all("/api/auth/{*any}", betterAuthHandler);
+app.all("/api/auth/*", betterAuthHandler);
 app.use("/api/users", userRoutes);
 app.use("/api/shipments", shipmentRoutes);
 app.use("/api/drivers", driverRoutes)
