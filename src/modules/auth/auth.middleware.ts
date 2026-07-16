@@ -28,8 +28,8 @@ export const protectRoute = async (
       const authHeader = req.headers.authorization;
       if (authHeader?.startsWith("Bearer ")) {
         const token = authHeader.slice(7);
-        const sessionDoc = await db.collection("session").findOne({ token })
-          || await db.collection("sessions").findOne({ token });
+        const sessionDoc = await db.collection("session").findOne({ sessionToken: token })
+          || await db.collection("sessions").findOne({ sessionToken: token });
         if (sessionDoc) {
           const userId = sessionDoc.userId?.toString();
           if (userId) {
@@ -60,14 +60,19 @@ export const protectRoute = async (
     }
 
     // Always fetch the user document to get the authoritative role
-    const userDoc = await db.collection("user").findOne({
-      _id: new mongoose.Types.ObjectId(session.user.id),
-    });
+    let userDoc: any = null;
+    try {
+      userDoc = await db.collection("user").findOne({
+        _id: new mongoose.Types.ObjectId(session.user.id),
+      });
+    } catch {}
 
     let organizationId: string | undefined = undefined;
-    let role: Role = Roles.OPERATIONS_MANAGER;
+    let role: Role;
 
     if (userDoc?.role === Roles.SUPER_ADMIN) {
+      role = Roles.SUPER_ADMIN;
+    } else if (session.user.role === Roles.SUPER_ADMIN) {
       role = Roles.SUPER_ADMIN;
     } else {
       const memberRecord = await db
@@ -78,12 +83,20 @@ export const protectRoute = async (
             { userId: new mongoose.Types.ObjectId(session.user.id) },
           ],
         });
-      if (memberRecord) {
-        organizationId = memberRecord.organizationId.toString();
+      if (!memberRecord) {
+        res.status(403).json({ error: "Forbidden: No organization membership found" });
+        return;
+      }
+      organizationId = memberRecord.organizationId.toString();
+      if (memberRecord.customRole && Object.values(Roles).includes(memberRecord.customRole)) {
+        role = memberRecord.customRole;
+      } else {
         role =
           memberRecord.role === "owner"
             ? Roles.ORGANIZATION_OWNER
-            : Roles.OPERATIONS_MANAGER;
+            : memberRecord.role === "member"
+              ? Roles.OPERATIONS_MANAGER
+              : Roles.WORKER;
       }
     }
 
