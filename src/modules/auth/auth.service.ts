@@ -96,7 +96,7 @@ export const login = async (data: any) => {
   });
 
   let organizationId: string | undefined;
-  let role: Role = Roles.OPERATIONS_MANAGER;
+  let role: Role;
 
   if (userDoc?.role === Roles.SUPER_ADMIN) {
     role = Roles.SUPER_ADMIN;
@@ -107,12 +107,19 @@ export const login = async (data: any) => {
         { userId: new mongoose.Types.ObjectId(loginData.user.id) },
       ],
     });
-    if (memberRecord) {
-      organizationId = memberRecord.organizationId.toString();
+    if (!memberRecord) {
+      throw new AppError(403, "No organization membership found");
+    }
+    organizationId = memberRecord.organizationId.toString();
+    if (memberRecord.customRole && Object.values(Roles).includes(memberRecord.customRole)) {
+      role = memberRecord.customRole;
+    } else {
       role =
         memberRecord.role === "owner"
           ? Roles.ORGANIZATION_OWNER
-          : Roles.OPERATIONS_MANAGER;
+          : memberRecord.role === "member"
+            ? Roles.OPERATIONS_MANAGER
+            : Roles.WORKER;
     }
   }
 

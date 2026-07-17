@@ -480,6 +480,42 @@ export const updateShipmentStatus = async (
   return mapShipmentResponse(updatedDoc);
 };
 
+export const deleteShipment = async (
+  shipmentObjectId: string,
+  organizationId: string,
+): Promise<void> => {
+  if (!organizationId) {
+    throw new AppError(400, "Organization ID is required");
+  }
+
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+
+  let objectId: mongoose.Types.ObjectId;
+  try {
+    objectId = new mongoose.Types.ObjectId(shipmentObjectId);
+  } catch {
+    throw new AppError(400, "Invalid shipment ID format");
+  }
+
+  const shipment = await db.collection("shipment").findOne({
+    _id: objectId,
+    orgId: new mongoose.Types.ObjectId(organizationId),
+  });
+
+  if (!shipment) {
+    throw new AppError(404, "Shipment not found");
+  }
+
+  await db.collection("shipment").deleteOne({ _id: objectId });
+
+  try {
+    getIO().emit("shipment:deleted", { _id: shipmentObjectId });
+  } catch {}
+};
+
 export const getOrganizationTimeline = async (
   organizationId: string,
 ): Promise<any[]> => {

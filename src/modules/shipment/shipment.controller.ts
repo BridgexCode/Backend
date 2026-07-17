@@ -235,6 +235,31 @@ export const updateShipmentStatusController = async (
   }
 };
 
+export const deleteShipmentController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user?.organizationId) {
+      res.status(400).json({ error: "Organization ID not found" });
+      return;
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      res.status(400).json({ error: "Shipment ID is required" });
+      return;
+    }
+
+    await ShipmentService.deleteShipment(id as string, req.user.organizationId);
+
+    res.status(200).json({ message: "Shipment deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getShipmentsTimelineController = async (
   req: AuthRequest,
   res: Response,
