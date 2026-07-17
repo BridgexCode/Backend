@@ -25,13 +25,21 @@ export const seedSuperAdmin = async () => {
 
   try {
     const auth = await getAuth();
-    const result = await auth.api.signUpEmail({
+    const signUpResult = await auth.api.signUpEmail({
       body: {
         email: "admin@naxivo.com",
         password: "admin123",
         name: "System Admin",
       },
+      asResponse: true,
     });
+
+    if (!signUpResult.ok) {
+      const errorData = await signUpResult.json().catch(() => ({}));
+      throw new Error(errorData.message || "Sign up failed");
+    }
+
+    await signUpResult.json();
 
     // Get the created user ID and update role
     const user = await db.collection("user").findOne({ email: "admin@naxivo.com" });
@@ -44,6 +52,6 @@ export const seedSuperAdmin = async () => {
 
     console.log("✅ Super Admin seeded: admin@naxivo.com / admin123");
   } catch (error: any) {
-    console.log("⚠️ Super Admin seed skipped:", error.message || error);
+    console.error("⚠️ Super Admin seed failed:", error.message || error);
   }
 };

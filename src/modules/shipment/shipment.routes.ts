@@ -9,6 +9,7 @@ import {
   assignDriverController,
   updateShipmentController,
   updateShipmentStatusController,
+  deleteShipmentController,
   getShipmentsTimelineController,
 } from "./shipment.controller.js";
 
@@ -103,6 +104,18 @@ router.put(
     Roles.OPERATIONS_MANAGER
   ),
   updateShipmentController,
+);
+
+// Delete Shipment
+router.delete(
+  "/:id",
+  protectRoute,
+  authorizeRoles(
+    Roles.SUPER_ADMIN,
+    Roles.ORGANIZATION_OWNER,
+    Roles.OPERATIONS_MANAGER
+  ),
+  deleteShipmentController,
 );
 
 // Update Shipment Status
