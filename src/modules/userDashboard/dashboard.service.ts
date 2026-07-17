@@ -1,11 +1,13 @@
+import mongoose from "mongoose";
 import Driver from "../../models/Driver.js";
 import Shipment from "../../models/Shipment.js";
 import Vehicle from "../../models/Vehicle.js";
 
-
 export const getDashboardStats = async (
   organizationId: string,
 ) => {
+  const orgObjectId = new mongoose.Types.ObjectId(organizationId);
+
   const [
     totalShipments,
     deliveredShipments,
@@ -16,35 +18,35 @@ export const getDashboardStats = async (
     totalVehicles,
     activeVehicles,
   ] = await Promise.all([
-    Shipment.countDocuments({ organizationId }),
+    Shipment.countDocuments({ orgId: orgObjectId }),
 
     Shipment.countDocuments({
-      organizationId,
-      status: "DELIVERED",
+      orgId: orgObjectId,
+      statusLifecycle: "delivered",
     }),
 
     Shipment.countDocuments({
-      organizationId,
-      status: "IN_TRANSIT",
+      orgId: orgObjectId,
+      statusLifecycle: "in_transit",
     }),
 
     Shipment.countDocuments({
-      organizationId,
-      status: "DELAYED",
+      orgId: orgObjectId,
+      statusLifecycle: { $in: ["assigned", "picked_up", "in_transit"] },
     }),
 
-    Driver.countDocuments({ organizationId }),
+    Driver.countDocuments({ orgId: orgObjectId }),
 
     Driver.countDocuments({
-      organizationId,
-      isActive: true,
+      orgId: orgObjectId,
+      status: { $in: ["available", "on_trip"] },
     }),
 
-    Vehicle.countDocuments({ organizationId }),
+    Vehicle.countDocuments({ orgId: orgObjectId }),
 
     Vehicle.countDocuments({
-      organizationId,
-      isActive: true,
+      orgId: orgObjectId,
+      status: { $in: ["available", "assigned"] },
     }),
   ]);
 

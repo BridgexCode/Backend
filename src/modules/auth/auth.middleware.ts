@@ -13,28 +13,63 @@ export const protectRoute = async (
 ) => {
   try {
     const auth = await getAuth();
+    const db = mongoose.connection.db;
+    if (!db) {
+      res.status(500).json({ error: "Internal Server Error: Database connection not ready." });
+      return;
+    }
 
-    const session = await auth.api.getSession({
+    let session: any = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
-    });
+    }).catch(() => null);
+
+    // Fallback: try Authorization header if cookie session not found
+    if (!session) {
+      const authHeader = req.headers.authorization;
+      if (authHeader?.startsWith("Bearer ")) {
+        const token = authHeader.slice(7);
+        const sessionDoc = await db.collection("session").findOne({ token })
+          || await db.collection("sessions").findOne({ token });
+        if (sessionDoc) {
+          const userId = sessionDoc.userId?.toString();
+          if (userId) {
+            const userDoc = await db.collection("user").findOne({
+              _id: new mongoose.Types.ObjectId(userId),
+            });
+            if (userDoc) {
+              session = {
+                user: {
+                  id: userDoc._id.toString(),
+                  name: userDoc.name,
+                  email: userDoc.email,
+                  role: userDoc.role,
+                  phoneNumber: userDoc.phoneNumber,
+                  createdAt: userDoc.createdAt,
+                },
+                session: sessionDoc,
+              };
+            }
+          }
+        }
+      }
+    }
 
     if (!session) {
       res.status(401).json({ error: "Unauthorized: No active session found." });
       return;
     }
 
-    const db = mongoose.connection.db;
-    if (!db) {
-      res.status(500).json({
-        error: "Internal Server Error: Database connection not ready.",
-      });
-      return;
-    }
+    // Always fetch the user document to get the authoritative role
+    const userDoc = await db.collection("user").findOne({
+      _id: new mongoose.Types.ObjectId(session.user.id),
+    });
 
     let organizationId: string | undefined = undefined;
-    let role: Role = (session.user.role as Role) || Roles.OPERATIONS_MANAGER;
+    let role: Role = Roles.OPERATIONS_MANAGER;
 
-    if (session.user.role !== Roles.SUPER_ADMIN) {
+    if (userDoc?.role === Roles.SUPER_ADMIN) {
+      role = Roles.SUPER_ADMIN;
+    } else {
       const memberRecord = await db
         .collection("member")
         .findOne({
@@ -50,11 +85,8 @@ export const protectRoute = async (
             ? Roles.ORGANIZATION_OWNER
             : Roles.OPERATIONS_MANAGER;
       }
-    } else {
-      role = Roles.SUPER_ADMIN;
     }
 
-    // Attach user and session to the request object
     req.user = {
       id: session.user.id,
       name: session.user.name,

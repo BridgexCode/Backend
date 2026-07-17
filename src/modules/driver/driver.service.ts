@@ -16,11 +16,13 @@ const VALID_STATUSES: DriverStatus[] = [
 
 const mapDriverResponse = (doc: any): DriverResponse => ({
   _id: doc._id.toString(),
+  driverId: doc.driverId,
   orgId: doc.orgId.toString(),
   name: doc.name,
   phone: doc.phone,
   licenseNumber: doc.licenseNumber,
   vehicleNumber: doc.vehicleNumber,
+  telegramId: doc.telegramId,
   status: doc.status,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
@@ -47,6 +49,22 @@ export const getAllDrivers = async (
   return docs.map(mapDriverResponse);
 };
 
+const generateDriverId = async (db: any): Promise<string> => {
+  const lastDriver = await db
+    .collection("driver")
+    .find({ driverId: { $regex: /^DRV\d+$/ } })
+    .sort({ driverId: -1 })
+    .limit(1)
+    .toArray();
+
+  let nextNum = 1;
+  if (lastDriver.length > 0) {
+    const num = parseInt(lastDriver[0].driverId.replace("DRV", ""), 10);
+    nextNum = num + 1;
+  }
+  return `DRV${String(nextNum).padStart(3, "0")}`;
+};
+
 export const createDriver = async (
   data: CreateDriverInput,
   organizationId: string,
@@ -66,14 +84,17 @@ export const createDriver = async (
   }
 
   const now = new Date();
+  const driverId = await generateDriverId(db);
 
   const doc = {
     _id: new mongoose.Types.ObjectId(),
+    driverId,
     orgId: new mongoose.Types.ObjectId(organizationId),
     name: data.name,
     phone: data.phone,
     licenseNumber: data.licenseNumber,
     vehicleNumber: data.vehicleNumber,
+    telegramId: null,
     status: data.status || "available",
     createdAt: now,
     updatedAt: now,
@@ -167,6 +188,23 @@ export const getDriverById = async (
   return mapDriverResponse(doc);
 };
 
+export const findByDriverId = async (
+  driverId: string,
+): Promise<any> => {
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+
+  const doc = await db.collection("driver").findOne({ driverId });
+
+  if (!doc) {
+    throw new AppError(404, "Driver not found with this Driver ID");
+  }
+
+  return doc;
+};
+
 export const updateDriver = async (
   driverObjectId: string,
   data: UpdateDriverInput,
@@ -209,6 +247,7 @@ export const updateDriver = async (
   if (data.phone !== undefined) updates.phone = data.phone;
   if (data.licenseNumber !== undefined) updates.licenseNumber = data.licenseNumber;
   if (data.vehicleNumber !== undefined) updates.vehicleNumber = data.vehicleNumber;
+  if (data.telegramId !== undefined) updates.telegramId = data.telegramId;
   if (data.status !== undefined) updates.status = data.status;
 
   const updatedDoc = await db.collection("driver").findOneAndUpdate(

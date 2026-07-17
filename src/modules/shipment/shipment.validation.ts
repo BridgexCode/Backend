@@ -38,6 +38,27 @@ export const validateAssignOperationsManager = (body: any) => {
   }
 };
 
+export const validateAssignDriver = (body: any) => {
+  const { driverId } = body;
+
+  if (!driverId) {
+    throw new BadRequestError("driverId is required");
+  }
+};
+
+export const validateUpdateShipment = (body: any) => {
+  if (!body || Object.keys(body).length === 0) {
+    throw new BadRequestError("At least one field is required to update");
+  }
+
+  if (body.expectedDeliveryDate) {
+    const parsed = new Date(body.expectedDeliveryDate);
+    if (isNaN(parsed.getTime())) {
+      throw new BadRequestError("expectedDeliveryDate must be a valid date");
+    }
+  }
+};
+
 export const validateUpdateShipmentStatus = (body: any) => {
   const { status } = body;
 
@@ -52,6 +73,7 @@ export const validateUpdateShipmentStatus = (body: any) => {
     "in_transit",
     "delivered",
     "cancelled",
+    "delayed",
   ];
 
   if (!VALID_STATUSES.includes(status)) {

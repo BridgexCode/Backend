@@ -1,20 +1,5 @@
-import mongoose, { Document, Schema, Types } from "mongoose";
-
-export interface IVehicle extends Document {
-  vehicleNumber: string;
-  orgId: Types.ObjectId;
-
-  vehicleModel: string;
-
-  type: "truck" | "van" | "pickup" | "other";
-
-  driverId?: Types.ObjectId;
-
-  status: "available" | "assigned" | "maintenance" | "inactive";
-
-  createdAt: Date;
-  updatedAt: Date;
-}
+import mongoose, { Schema } from "mongoose";
+import { IVehicle } from "../modules/vehicle/vehicle.types.js";
 
 const vehicleSchema = new Schema<IVehicle>(
   {

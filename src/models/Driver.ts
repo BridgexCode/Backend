@@ -1,21 +1,14 @@
-import mongoose, { Document, Schema, Types } from "mongoose";
-
-export interface IDriver extends Document {
-  orgId: Types.ObjectId;
-
-  name: string;
-  phone: string;
-  licenseNumber: string;
-  vehicleNumber: string;
-
-  status: "available" | "on_trip" | "inactive";
-
-  createdAt: Date;
-  updatedAt: Date;
-}
+import mongoose, { Schema } from "mongoose";
+import { IDriver } from "../modules/driver/driver.types.js";
 
 const driverSchema = new Schema<IDriver>(
   {
+    driverId: {
+      type: String,
+      unique: true,
+      trim: true,
+    },
+
     orgId: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -42,8 +35,12 @@ const driverSchema = new Schema<IDriver>(
 
     vehicleNumber: {
       type: String,
-      required: true,
       trim: true,
+    },
+
+    telegramId: {
+      type: String,
+      default: null,
     },
 
     status: {

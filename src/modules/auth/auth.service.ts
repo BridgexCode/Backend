@@ -39,6 +39,7 @@ export const registerOrganization = async (data: any) => {
     body: {
       name: orgName,
       slug,
+      email,
       metadata: {
         country: country || "",
         timezone: timezone || "Asia/Kolkata",
@@ -89,10 +90,17 @@ export const login = async (data: any) => {
     throw new AppError(500, "Database connection not ready");
   }
 
-  let organizationId: string | undefined;
-  let role: Role = (loginData.user.role as Role) || Roles.OPERATIONS_MANAGER;
+  // Fetch the actual user document from DB to get the real role
+  const userDoc = await db.collection("user").findOne({
+    _id: new mongoose.Types.ObjectId(loginData.user.id),
+  });
 
-  if (loginData.user.role !== Roles.SUPER_ADMIN) {
+  let organizationId: string | undefined;
+  let role: Role = Roles.OPERATIONS_MANAGER;
+
+  if (userDoc?.role === Roles.SUPER_ADMIN) {
+    role = Roles.SUPER_ADMIN;
+  } else {
     const memberRecord = await db.collection("member").findOne({
       $or: [
         { userId: loginData.user.id },
@@ -106,8 +114,6 @@ export const login = async (data: any) => {
           ? Roles.ORGANIZATION_OWNER
           : Roles.OPERATIONS_MANAGER;
     }
-  } else {
-    role = Roles.SUPER_ADMIN;
   }
 
   return {
