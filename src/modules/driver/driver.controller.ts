@@ -33,7 +33,7 @@ export const createDriverController = async (
     validateCreateDriver(req.body);
 
     if (!req.user?.organizationId) {
-      res.status(400).json({ error: "Organization ID not found" });
+      res.status(400).json({ error: "Organization ID not founded" });
       return;
     }
 
