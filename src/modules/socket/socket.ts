@@ -6,7 +6,7 @@ let io: Server;
 export function initSocketIO(server: HttpServer) {
   io = new Server(server, {
     cors: {
-      origin: [process.env.CLIENT_URL || "http://localhost:3000"],
+      origin: [process.env.CLIENT_URL, "http://localhost:3000"].filter(Boolean) as string[],
       credentials: true,
     },
   });
