@@ -13,4 +13,11 @@ export const validateLogin = (body: any) => {
     throw new BadRequestError("Email and password are required");
   }
 };
+
+export const validateResendVerificationEmail = (body: any) => {
+  const { email } = body;
+  if (!email) {
+    throw new BadRequestError("Email is required");
+  }
+};
  
