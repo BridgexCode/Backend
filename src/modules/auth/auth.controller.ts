@@ -82,6 +82,24 @@ export const logout = async (
   }
 };
 
+export const getSocialSession = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const result = await AuthService.getSocialSession(req.headers);
+
+    res.status(200).json({
+      message: "Social login successful",
+      token: result.token,
+      user: result.user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getMe = async (req: AuthRequest, res: Response) => {
   const user = req.user;
   if (!user) {

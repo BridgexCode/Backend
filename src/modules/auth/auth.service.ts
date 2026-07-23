@@ -5,6 +5,91 @@ import { AppError } from "../../common/errors/app-error.js";
 import { Roles, Role } from "../../common/constants/roles.js";
 import { fromNodeHeaders } from "better-auth/node";
 
+const getDb = () => {
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new AppError(500, "Database connection not ready");
+  }
+  return db;
+};
+
+const findUserById = async (userId: string) => {
+  const db = getDb();
+  try {
+    return await db.collection("user").findOne({
+      _id: new mongoose.Types.ObjectId(userId),
+    });
+  } catch {
+    return await db.collection("user").findOne({ _id: userId } as any);
+  }
+};
+
+const findMemberByUserId = async (userId: string) => {
+  const db = getDb();
+  const ids: any[] = [userId];
+  try {
+    ids.push(new mongoose.Types.ObjectId(userId));
+  } catch {}
+
+  return db.collection("member").findOne({ userId: { $in: ids } });
+};
+
+const resolveRole = (memberRecord: any): Role => {
+  if (memberRecord.customRole && Object.values(Roles).includes(memberRecord.customRole)) {
+    return memberRecord.customRole;
+  }
+
+  return memberRecord.role === "owner"
+    ? Roles.ORGANIZATION_OWNER
+    : memberRecord.role === "member"
+      ? Roles.OPERATIONS_MANAGER
+      : Roles.WORKER;
+};
+
+const buildSessionUser = async (session: any) => {
+  const userDoc = await findUserById(session.user.id);
+
+  if (userDoc?.role === Roles.SUPER_ADMIN) {
+    return {
+      id: session.user.id,
+      name: userDoc.name || session.user.name,
+      email: userDoc.email || session.user.email,
+      role: Roles.SUPER_ADMIN as Role,
+      organizationId: undefined,
+      phoneNumber: userDoc.phoneNumber || userDoc.phone || "",
+      createdAt: userDoc.createdAt || session.user.createdAt,
+    };
+  }
+
+  const memberRecord = await findMemberByUserId(session.user.id);
+  if (!memberRecord) {
+    throw new AppError(403, "Complete organization registration before signing in");
+  }
+
+  return {
+    id: session.user.id,
+    name: userDoc?.name || session.user.name,
+    email: userDoc?.email || session.user.email,
+    role: resolveRole(memberRecord),
+    organizationId: memberRecord.organizationId.toString(),
+    phoneNumber: userDoc?.phoneNumber || userDoc?.phone || "",
+    createdAt: userDoc?.createdAt || session.user.createdAt,
+  };
+};
+
+const getSessionFromHeaders = async (headers: any) => {
+  const auth = await getAuth();
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(headers),
+  }).catch(() => null);
+
+  if (!session) {
+    throw new AppError(401, "Unauthorized: No active session found.");
+  }
+
+  return session;
+};
+
 // -- Register Organization --//
 export const registerOrganization = async (data: any) => {
   const { orgName, adminName, email, password, phone, country, timezone } =
@@ -61,6 +146,14 @@ export const registerOrganization = async (data: any) => {
       phoneNumber: phone || "",
       createdAt: signUpData.user.createdAt,
     },
+  };
+};
+
+export const getSocialSession = async (headers: any) => {
+  const session = await getSessionFromHeaders(headers);
+  return {
+    token: session.session.token,
+    user: await buildSessionUser(session),
   };
 };
 
