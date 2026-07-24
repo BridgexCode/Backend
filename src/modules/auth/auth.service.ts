@@ -90,6 +90,19 @@ const getSessionFromHeaders = async (headers: any) => {
   return session;
 };
 
+const getClientUrl = () =>
+  process.env.CLIENT_URL || "http://localhost:3000";
+
+const sendVerificationEmail = async (email: string) => {
+  const auth = await getAuth();
+  await auth.api.sendVerificationEmail({
+    body: {
+      email,
+      callbackURL: `${getClientUrl()}/login`,
+    },
+  });
+};
+
 // -- Register Organization --//
 export const registerOrganization = async (data: any) => {
   const { orgName, adminName, email, password, phone, country, timezone } =
@@ -98,7 +111,12 @@ export const registerOrganization = async (data: any) => {
 
   // Sign up User
   const signUpResult = await auth.api.signUpEmail({
-    body: { email, password, name: adminName },
+    body: {
+      email,
+      password,
+      name: adminName,
+      callbackURL: `${getClientUrl()}/login`,
+    },
     asResponse: true,
   });
 
@@ -157,6 +175,10 @@ export const getSocialSession = async (headers: any) => {
   };
 };
 
+export const resendVerificationEmail = async (data: any) => {
+  await sendVerificationEmail(data.email);
+};
+
 // -- Login Organization --//
 export const login = async (data: any) => {
   const { email, password } = data;
@@ -187,6 +209,11 @@ export const login = async (data: any) => {
   const userDoc = await db.collection("user").findOne({
     _id: new mongoose.Types.ObjectId(loginData.user.id),
   });
+
+  if (userDoc?.role !== Roles.SUPER_ADMIN && userDoc?.emailVerified === false) {
+    await sendVerificationEmail(loginData.user.email);
+    throw new AppError(403, "Please verify your email before logging in");
+  }
 
   let organizationId: string | undefined;
   let role: Role;

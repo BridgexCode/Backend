@@ -1,7 +1,11 @@
 import { Response, NextFunction } from "express";
 import { AuthRequest } from "./auth.types.js";
 import * as AuthService from "./auth.service.js";
-import { validateRegisterOrganization, validateLogin } from "./auth.validation.js";
+import {
+  validateRegisterOrganization,
+  validateLogin,
+  validateResendVerificationEmail,
+} from "./auth.validation.js";
 import { getAuth } from "../../lib/auth.js";
 import { toNodeHandler } from "better-auth/node";
 
@@ -27,14 +31,9 @@ export const registerOrganization = async (
     validateRegisterOrganization(req.body);
     const result = await AuthService.registerOrganization(req.body);
 
-    if (result.setCookie) {
-      res.setHeader("set-cookie", result.setCookie);
-    }
-
     res.status(201).json({
-      message: "Organization registered successfully",
-      token: result.token,
-      user: result.user,
+      message: "Organization registered successfully. Please verify your email.",
+      email: result.user.email,
     });
   } catch (error) {
     next(error);
@@ -77,6 +76,23 @@ export const logout = async (
     }
 
     res.status(200).json({ message: "Logout successful" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resendVerificationEmail = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    validateResendVerificationEmail(req.body);
+    await AuthService.resendVerificationEmail(req.body);
+
+    res.status(200).json({
+      message: "Verification email sent",
+    });
   } catch (error) {
     next(error);
   }

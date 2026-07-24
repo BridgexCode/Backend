@@ -13,21 +13,6 @@ export const validateCreateDriver = z.object({
   ]).optional()
 })
 
-// export const validateUpdateDriver = (body: any) => {
-//   if (!body) {
-//     throw new BadRequestError("Request body is required");
-//   }
-
-//   const { status } = body;
-//   const allowedStatuses = ["available", "on_trip", "inactive"];
-
-//   if (status && !allowedStatuses.includes(status)) {
-//     throw new BadRequestError(
-//       `status must be one of: ${allowedStatuses.join(", ")}`
-//     );
-//   }
-// };
-
 export const validateUpdateDriver = z.object({
   status: z.
     enum(['available', 'on_trip', 'inactive'])
