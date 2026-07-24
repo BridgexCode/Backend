@@ -41,13 +41,19 @@ export const getAllVehiclesController = async (
       return;
     }
 
-    const vehicles = await VehicleService.getAllVehicles(
+    const query = {
+      page: req.query.page as string | undefined,
+      limit: req.query.limit as string | undefined,
+      search: req.query.search as string | undefined,
+      status: req.query.status as string | undefined,
+    };
+
+    const result = await VehicleService.getAllVehicles(
       req.user.organizationId,
+      query,
     );
 
-    res.status(200).json({
-      data: vehicles,
-    });
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }

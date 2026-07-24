@@ -32,6 +32,12 @@ export const createDriverController = asyncHandler(
     next: NextFunction,
   ) => {
       const validatedData = validateCreateDriver.parse(req.body)
+ 
+      
+    if (!req.user?.organizationId) {
+      res.status(400).json({ error: "Organization ID not founded" });
+      return;
+    }
 
       if (!req.user?.organizationId) {
         res.status(400).json({ error: "Organization ID not found" });

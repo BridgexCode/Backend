@@ -284,19 +284,24 @@ export const updateUser = async (
 
 export const getManagersByOrganization = async (
   organizationId: string,
-  roleFilter?: string,
+  queryOptions?: string | { page?: string; limit?: string; role?: string; search?: string },
 ) => {
   const db = mongoose.connection.db;
   if (!db) {
     throw new AppError(500, "Database connection not ready");
   }
 
+  const query = typeof queryOptions === "string" ? { role: queryOptions } : queryOptions || {};
+  const page = Math.max(1, parseInt(query.page || "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit || "3", 10)));
+  const skip = (page - 1) * limit;
+
   const matchFilter: Record<string, any> = {
     organizationId: new mongoose.Types.ObjectId(organizationId),
   };
 
-  if (roleFilter) {
-    matchFilter.customRole = roleFilter;
+  if (query.role) {
+    matchFilter.customRole = query.role;
   }
 
   const members = await db
@@ -304,21 +309,35 @@ export const getManagersByOrganization = async (
     .find(matchFilter)
     .toArray();
 
-  if (members.length === 0) return [];
+  if (members.length === 0) {
+    return { data: [], total: 0, page, limit, totalPages: 1 };
+  }
 
   const userIds = members.map((m) => m.userId);
 
+  const userFilter: Record<string, any> = {
+    _id: { $in: userIds },
+    isDeleted: { $ne: true },
+  };
+
+  if (query.search) {
+    const searchRegex = new RegExp(query.search, "i");
+    userFilter.$or = [
+      { name: searchRegex },
+      { email: searchRegex },
+      { phone: searchRegex },
+      { phoneNumber: searchRegex },
+    ];
+  }
+
   const users = await db
     .collection("user")
-    .find({
-      _id: { $in: userIds },
-      isDeleted: { $ne: true },
-    })
+    .find(userFilter)
     .toArray();
 
   const userMap = new Map(users.map((u) => [u._id.toString(), u]));
 
-  return members
+  const allItems = members
     .map((member) => {
       const user = userMap.get(member.userId.toString());
       if (!user) return null;
@@ -332,7 +351,13 @@ export const getManagersByOrganization = async (
         isActive: user.isActive ?? true,
       };
     })
-    .filter(Boolean);
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  const total = allItems.length;
+  const data = allItems.slice(skip, skip + limit);
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  return { data, total, page, limit, totalPages };
 };
 
 export const toggleActiveUser = async (

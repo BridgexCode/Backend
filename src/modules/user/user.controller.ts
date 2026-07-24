@@ -90,14 +90,19 @@ export const getManagersController = async (
       return;
     }
 
-    const role = req.query.role as string | undefined;
+    const query = {
+      page: req.query.page as string | undefined,
+      limit: req.query.limit as string | undefined,
+      role: req.query.role as string | undefined,
+      search: req.query.search as string | undefined,
+    };
 
-    const managers = await UserService.getManagersByOrganization(
+    const result = await UserService.getManagersByOrganization(
       req.user.organizationId,
-      role,
+      query,
     );
 
-    res.json({ data: managers });
+    res.json(result);
   } catch (error) {
     next(error);
   }

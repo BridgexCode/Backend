@@ -57,7 +57,7 @@ export const getDashboardStats = async (
     delayedShipments,
     totalDrivers,
     activeDrivers,
-    totalVehicles,
+    totalVehicles,  
     activeVehicles,
   };
 };

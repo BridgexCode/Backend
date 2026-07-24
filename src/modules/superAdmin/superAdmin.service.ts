@@ -25,15 +25,40 @@ const mapOrganizationResponse = (doc: any): OrganizationResponse => ({
   updatedAt: doc.updatedAt,
 });
 
-export const getAllOrganizations = async (): Promise<OrganizationResponse[]> => {
+export const getAllOrganizations = async (
+  query: { page?: string; limit?: string; search?: string; status?: string } = {},
+): Promise<{ data: OrganizationResponse[]; total: number; page: number; limit: number; totalPages: number }> => {
   const db = mongoose.connection.db;
   if (!db) throw new AppError(500, "Database connection not ready");
 
-  const docs = await db
-    .collection("organization")
-    .find({})
-    .sort({ createdAt: -1 })
-    .toArray();
+  const page = Math.max(1, parseInt(query.page || "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit || "3", 10)));
+  const skip = (page - 1) * limit;
+
+  const filter: Record<string, any> = {};
+  if (query.status && query.status !== "ALL") {
+    filter.status = query.status;
+  }
+
+  if (query.search) {
+    const searchRegex = new RegExp(query.search, "i");
+    filter.$or = [
+      { name: searchRegex },
+      { slug: searchRegex },
+      { email: searchRegex },
+    ];
+  }
+
+  const [docs, total] = await Promise.all([
+    db
+      .collection("organization")
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray(),
+    db.collection("organization").countDocuments(filter),
+  ]);
 
   const orgs = docs.map(mapOrganizationResponse);
 
@@ -66,12 +91,16 @@ export const getAllOrganizations = async (): Promise<OrganizationResponse[]> => 
     ),
   ]);
 
-  return orgs.map((org, i) => ({
+  const data = orgs.map((org, i) => ({
     ...org,
     email: emailFixes[i] || org.email,
     totalUsers: userCounts[i],
     totalShipments: shipmentCounts[i],
   }));
+
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  return { data, total, page, limit, totalPages };
 };
 
 export const getOrganizationById = async (
@@ -241,7 +270,7 @@ export const getMonthlyShipmentsReport = async (): Promise<MonthlyShipmentsRepor
 };
 
 export const getPlanDistribution = async (): Promise<PlanDistributionReport[]> => {
-  const orgs = await getAllOrganizations();
+  const { data: orgs } = await getAllOrganizations({ limit: "1000" });
   const plans: Record<string, number> = {};
   for (const org of orgs) {
     const plan = org.plan || "FREE";
@@ -298,15 +327,34 @@ export const getOrganizationGrowth = async (): Promise<OrganizationGrowthReport[
 };
 
 export const getAuditLogs = async (
-  search?: string,
-  typeFilter?: string,
-): Promise<AuditLogResponse[]> => {
+  queryOptions?: { page?: string; limit?: string; search?: string; type?: string } | string,
+  typeFilterLegacy?: string,
+): Promise<{ data: AuditLogResponse[]; total: number; page: number; limit: number; totalPages: number }> => {
   const db = mongoose.connection.db;
   if (!db) throw new AppError(500, "Database connection not ready");
 
+  let searchStr: string | undefined;
+  let typeStr: string | undefined;
+  let pageNum = "1";
+  let limitNum = "10";
+
+  if (typeof queryOptions === "object" && queryOptions !== null) {
+    searchStr = queryOptions.search;
+    typeStr = queryOptions.type;
+    if (queryOptions.page) pageNum = queryOptions.page;
+    if (queryOptions.limit) limitNum = queryOptions.limit;
+  } else if (typeof queryOptions === "string") {
+    searchStr = queryOptions;
+    typeStr = typeFilterLegacy;
+  }
+
+  const page = Math.max(1, parseInt(pageNum, 10));
+  const limit = Math.min(100, Math.max(1, parseInt(limitNum, 10)));
+  const skip = (page - 1) * limit;
+
   const filter: Record<string, any> = {};
-  if (typeFilter && typeFilter !== "ALL") {
-    filter.type = typeFilter;
+  if (typeStr && typeStr !== "ALL") {
+    filter.type = typeStr;
   }
 
   let logs = await db.collection("auditLog")
@@ -314,8 +362,8 @@ export const getAuditLogs = async (
     .sort({ timestamp: -1 })
     .toArray();
 
-  if (search) {
-    const s = search.toLowerCase();
+  if (searchStr) {
+    const s = searchStr.toLowerCase();
     logs = logs.filter((log: any) =>
       log.event?.toLowerCase().includes(s) ||
       log.user?.toLowerCase().includes(s) ||
@@ -323,7 +371,10 @@ export const getAuditLogs = async (
     );
   }
 
-  return logs.map((log: any) => ({
+  const total = logs.length;
+  const slicedLogs = logs.slice(skip, skip + limit);
+
+  const data: AuditLogResponse[] = slicedLogs.map((log: any) => ({
     id: log._id.toString(),
     event: log.event,
     description: log.description,
@@ -333,6 +384,10 @@ export const getAuditLogs = async (
     timestamp: formatTimestamp(log.timestamp),
     type: log.type,
   }));
+
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  return { data, total, page, limit, totalPages };
 };
 
 export const getSettings = async (): Promise<SystemSettingsResponse> => {

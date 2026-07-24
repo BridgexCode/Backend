@@ -3,9 +3,9 @@ import { AuthRequest } from "../auth/auth.types.js";
 import {
   validateCreateShipment,
   validateAssignOperationsManager,
+  validateUpdateShipmentStatus, 
   validateAssignDriver,
   validateUpdateShipment,
-  validateUpdateShipmentStatus,
 } from "./shipment.validation.js";
 import * as ShipmentService from "./shipment.service.js";
 
@@ -227,7 +227,7 @@ export const updateShipmentStatusController = async (
     );
 
     res.status(200).json({
-      message: "Shipment status updated successfully",
+      message: "Shipment status updated successfully",   
       data: shipment,
     });
   } catch (error) {

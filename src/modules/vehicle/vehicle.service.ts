@@ -65,7 +65,8 @@ export const createVehicle = async (
 
 export const getAllVehicles = async (
   organizationId: string,
-): Promise<VehicleResponse[]> => {
+  query: { page?: string; limit?: string; search?: string; status?: string } = {},
+): Promise<{ data: VehicleResponse[]; total: number; page: number; limit: number; totalPages: number }> => {
   if (!organizationId) {
     throw new AppError(400, "Organization ID is required");
   }
@@ -75,15 +76,42 @@ export const getAllVehicles = async (
     throw new AppError(500, "Database connection not ready");
   }
 
-  const docs = await db
-    .collection("vehicle")
-    .find({
-      orgId: new mongoose.Types.ObjectId(organizationId),
-    })
-    .sort({ createdAt: -1 })
-    .toArray();
+  const page = Math.max(1, parseInt(query.page || "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit || "3", 10)));
+  const skip = (page - 1) * limit;
 
-  return docs.map(mapVehicleResponse);
+  const filter: Record<string, any> = {
+    orgId: new mongoose.Types.ObjectId(organizationId),
+  };
+
+  if (query.status) {
+    filter.status = query.status;
+  }
+
+  if (query.search) {
+    const searchRegex = new RegExp(query.search, "i");
+    filter.$or = [
+      { vehicleNumber: searchRegex },
+      { vehicleModel: searchRegex },
+      { type: searchRegex },
+    ];
+  }
+
+  const [docs, total] = await Promise.all([
+    db
+      .collection("vehicle")
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray(),
+    db.collection("vehicle").countDocuments(filter),
+  ]);
+
+  const data: VehicleResponse[] = docs.map(mapVehicleResponse);
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  return { data, total, page, limit, totalPages };
 };
 
 export const getVehicleById = async (

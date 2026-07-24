@@ -45,7 +45,7 @@ const mapShipmentResponse = (doc: any): ShipmentResponse => ({
 export const createShipment = async (
   data: CreateShipmentInput,
   organizationId: string,
-  createdByUserId?: string,
+  createdByUserId?: string,  
 ): Promise<ShipmentResponse> => {
   if (!organizationId) {
     throw new AppError(400, "Organization ID is required");
@@ -95,7 +95,7 @@ export const createShipment = async (
 export const getShipments = async (
   organizationId: string,
   query: { page?: string; limit?: string; status?: string },
-): Promise<{ data: ShipmentResponse[]; total: number; page: number; limit: number }> => {
+): Promise<{ data: ShipmentResponse[]; total: number; page: number; limit: number; totalPages: number }> => {
   if (!organizationId) {
     throw new AppError(400, "Organization ID is required");
   }
@@ -106,7 +106,7 @@ export const getShipments = async (
   }
 
   const page = Math.max(1, parseInt(query.page || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(query.limit || "20", 10)));
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit || "3", 10)));
   const skip = (page - 1) * limit;
 
   const filter: Record<string, unknown> = {
@@ -129,8 +129,9 @@ export const getShipments = async (
   ]);
 
   const data: ShipmentResponse[] = docs.map(mapShipmentResponse);
+  const totalPages = Math.ceil(total / limit) || 1;
 
-  return { data, total, page, limit };
+  return { data, total, page, limit, totalPages };
 };
 
 export const getShipmentById = async (
@@ -295,7 +296,7 @@ export const updateShipment = async (
     { _id: objectId },
     {
       $set,
-      $push: {
+      $push: {   
         timeline: timelineEvent,
       } as any,
     }
