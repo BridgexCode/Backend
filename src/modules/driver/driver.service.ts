@@ -108,7 +108,7 @@ export const createDriver = async (
 export const getDrivers = async (
   organizationId: string,
   query: DriverQuery,
-): Promise<{ data: DriverResponse[]; total: number; page: number; limit: number }> => {
+): Promise<{ data: DriverResponse[]; total: number; page: number; limit: number; totalPages: number }> => {
   if (!organizationId) {
     throw new AppError(400, "Organization ID is required");
   }
@@ -119,7 +119,7 @@ export const getDrivers = async (
   }
 
   const page = Math.max(1, parseInt(query.page || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(query.limit || "20", 10)));
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit || "3", 10)));
   const skip = (page - 1) * limit;
 
   const filter: Record<string, any> = {
@@ -152,8 +152,9 @@ export const getDrivers = async (
   ]);
 
   const data: DriverResponse[] = docs.map(mapDriverResponse);
+  const totalPages = Math.ceil(total / limit) || 1;
 
-  return { data, total, page, limit };
+  return { data, total, page, limit, totalPages };
 };
 
 export const getDriverById = async (

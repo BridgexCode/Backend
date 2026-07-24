@@ -227,7 +227,7 @@ export const updateShipmentStatusController = async (
     );
 
     res.status(200).json({
-      message: "Shipment status updated successfully",
+      message: "Shipment status updated successfully",   
       data: shipment,
     });
   } catch (error) {

@@ -12,9 +12,15 @@ export const getDashboardController = asyncHandler(
 );
 
 export const getOrganizationsController = asyncHandler(
-  async (_req: AuthRequest, res: Response) => {
-    const organizations = await SuperAdminService.getAllOrganizations();
-    res.status(200).json({ success: true, data: organizations });
+  async (req: AuthRequest, res: Response) => {
+    const query = {
+      page: req.query.page as string | undefined,
+      limit: req.query.limit as string | undefined,
+      search: req.query.search as string | undefined,
+      status: req.query.status as string | undefined,
+    };
+    const result = await SuperAdminService.getAllOrganizations(query);
+    res.status(200).json({ success: true, ...result });
   },
 );
 
@@ -66,10 +72,14 @@ export const getOrganizationGrowthController = asyncHandler(
 
 export const getAuditLogsController = asyncHandler(
   async (req: AuthRequest, res: Response) => {
-    const search = req.query.search as string | undefined;
-    const type = req.query.type as string | undefined;
-    const logs = await SuperAdminService.getAuditLogs(search, type);
-    res.status(200).json({ success: true, data: logs });
+    const query = {
+      page: req.query.page as string | undefined,
+      limit: req.query.limit as string | undefined,
+      search: req.query.search as string | undefined,
+      type: req.query.type as string | undefined,
+    };
+    const result = await SuperAdminService.getAuditLogs(query);
+    res.status(200).json({ success: true, ...result });
   },
 );
 
