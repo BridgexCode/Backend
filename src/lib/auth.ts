@@ -150,6 +150,7 @@ export const getAuth = async (): Promise<any> => {
       process.env.CLIENT_URL || "",
       "http://localhost:3000",
       "http://localhost:5000",
+      "https://logiflow.duckdns.org",
       "https://logiflow-frontend-pink.vercel.app",
     ].filter(Boolean),
   });
