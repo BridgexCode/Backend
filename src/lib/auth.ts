@@ -27,6 +27,15 @@ export const getAuth = async (): Promise<any> => {
 
     authInstance = betterAuth({
     database: mongodbAdapter(db),
+
+    advanced: {
+      defaultCookieAttributes: {
+        sameSite: "none",
+        secure: true,
+        httpOnly: true,
+      },
+    },
+
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
