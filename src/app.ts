@@ -18,6 +18,7 @@ app.use(express.json());
 const allowedOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:3000",
+  "https://logiflow-frontend-pink.vercel.app",
 ].filter(Boolean) as string[];
 
 app.use(
