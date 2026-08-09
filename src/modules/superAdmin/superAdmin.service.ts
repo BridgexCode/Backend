@@ -395,14 +395,14 @@ export const getSettings = async (): Promise<SystemSettingsResponse> => {
   if (!db) throw new AppError(500, "Database connection not ready");
 
   const defaults: SystemSettingsResponse = {
-    platformName: "Naxivo ERP",
+    platformName: "Logiflow ERP",
     supportEmail: "support@naxivo.com",
     maxOrganizations: 50,
     defaultLanguage: "English",
     twoFactorAuth: true,
     passwordExpiry: false,
     sessionTimeout: 60,
-    smtpHost: "smtp.naxivo.com",
+    smtpHost: "smtp.logiflow.com",
     smtpPort: 587,
     smtpEncryption: "TLS",
     smtpUsername: "noreply@naxivo.com",

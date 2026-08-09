@@ -16,6 +16,17 @@ export interface ShipmentTimelineEvent {
   timestamp: Date;
 }
 
+export interface ShipmentProofPhoto {
+  type: "proof_photo";
+  telegramFileId: string;
+  cloudinaryAssetId?: string;
+  cloudinaryPublicId: string;
+  cloudinaryUrl: string;
+  cloudinaryFormat?: string;
+  cloudinaryBytes?: number;
+  timestamp: Date;
+}
+
 export interface CreateShipmentInput {
   pickupLocation: string;
   destination: string;
@@ -60,6 +71,7 @@ export interface ShipmentResponse {
   expectedDeliveryDate: Date;
   statusLifecycle: ShipmentStatus;
   timeline?: ShipmentTimelineEvent[];
+  proofPhotos?: ShipmentProofPhoto[];
   notes?: string;
   createdAt: Date;
   updatedAt: Date;

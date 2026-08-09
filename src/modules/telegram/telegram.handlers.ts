@@ -73,6 +73,10 @@ export const handleMessage = async (bot: TelegramBot, msg: Message) => {
     return handleStatusSelect(bot, chatId, text, session);
   }
 
+  if (session.step === "awaiting_proof_shipment") {
+    return handleProofShipmentSelect(bot, chatId, text, session);
+  }
+
   if (text === "/picked" || text === "/transit" || text === "/delivered" || text === "/delayed") {
     return handleQuickStatus(bot, chatId, text, session);
   }
@@ -130,6 +134,7 @@ async function handleDriverIdInput(bot: TelegramBot, chatId: number, text: strin
 
     session.driverDoc = driver;
     session.step = "idle";
+    session.selectedProofShipment = undefined;
     sessions.set(chatId, session);
 
     bot.sendMessage(
@@ -237,6 +242,7 @@ async function handleShipmentSelect(bot: TelegramBot, chatId: number, text: stri
       `❌ Cannot update status for "${escapeMarkdown(selectedShipment.shipmentId)}". Current status: "${escapeMarkdown(current)}".\nUse /help to see available commands.`,
     );
     session.step = "idle";
+    session.selectedProofShipment = undefined;
     sessions.set(chatId, session);
     return;
   }
@@ -326,30 +332,100 @@ async function handleUploadProof(bot: TelegramBot, chatId: number, session: any)
     return;
   }
 
+  try {
+    const shipments = await TelegramService.getDriverShipments(session.driverDoc._id);
+
+    if (shipments.length === 0) {
+      bot.sendMessage(chatId, "No active shipments to attach proof to.");
+      return;
+    }
+
+    let message = "*Select shipment for proof photo:*\n\n";
+    for (let i = 0; i < shipments.length; i++) {
+      message += `${i + 1}. ${escapeMarkdown(shipments[i].shipmentId)} - ${escapeMarkdown(shipments[i].pickupLocation)} to ${escapeMarkdown(shipments[i].destination)}\n`;
+    }
+    message += `\nReply with the *number* (1-${shipments.length}) or the *Shipment ID*.`;
+
+    session.step = "awaiting_proof_shipment";
+    session.shipments = shipments;
+    session.selectedProofShipment = undefined;
+    sessions.set(chatId, session);
+
+    bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+    return;
+  } catch (error: any) {
+    bot.sendMessage(chatId, `âŒ ${error.message || "Failed to load shipments"}`);
+    return;
+  }
+
   session.step = "awaiting_photo";
   sessions.set(chatId, session);
   bot.sendMessage(chatId, "📸 Please send a photo as proof of delivery.");
+}
+
+async function handleProofShipmentSelect(bot: TelegramBot, chatId: number, text: string, session: any) {
+  let selectedShipment: any;
+
+  const num = parseInt(text, 10);
+  if (!isNaN(num) && num >= 1 && num <= session.shipments.length) {
+    selectedShipment = session.shipments[num - 1];
+  } else {
+    selectedShipment = session.shipments.find(
+      (s: any) => s.shipmentId.toUpperCase() === text.toUpperCase(),
+    );
+  }
+
+  if (!selectedShipment) {
+    bot.sendMessage(chatId, "Invalid shipment selection. Please try again.");
+    return;
+  }
+
+  session.selectedProofShipment = selectedShipment;
+  session.step = "awaiting_photo";
+  sessions.set(chatId, session);
+
+  bot.sendMessage(
+    chatId,
+    `Please send a proof photo for *${escapeMarkdown(selectedShipment.shipmentId)}*.`,
+    { parse_mode: "Markdown" },
+  );
 }
 
 async function handlePhotoUpload(bot: TelegramBot, chatId: number, msg: Message, session: any) {
   if (!msg.photo || msg.photo.length === 0) return;
 
   try {
-    const shipments = await TelegramService.getDriverShipments(session.driverDoc._id);
+    if (!session.selectedProofShipment) {
+      session.step = "idle";
+      sessions.set(chatId, session);
+      bot.sendMessage(chatId, "Please choose Upload Proof again and select a shipment first.");
+      return;
+    }
+
+    const shipments = [session.selectedProofShipment];
     if (shipments.length === 0) {
       bot.sendMessage(chatId, "📦 No active shipments to attach proof to.");
       return;
     }
 
     const fileId = msg.photo[msg.photo.length - 1].file_id;
+    const fileLink = await bot.getFileLink(fileId);
+    const uploadedPhoto = await TelegramService.uploadProofPhotoToCloudinary(
+      fileLink,
+      session.driverDoc.driverId || session.driverDoc._id.toString(),
+    );
 
     for (const s of shipments) {
-      await TelegramService.storeProofPhoto(s._id.toString(), fileId);
+      await TelegramService.storeProofPhoto(s._id.toString(), {
+        telegramFileId: fileId,
+        ...uploadedPhoto,
+      });
     }
 
     bot.sendMessage(chatId, "✅ Proof photo saved to your shipments.");
 
     session.step = "idle";
+    session.selectedProofShipment = undefined;
     sessions.set(chatId, session);
   } catch (error: any) {
     bot.sendMessage(chatId, `❌ ${error.message || "Failed to save photo"}`);

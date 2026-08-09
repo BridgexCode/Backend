@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { AppError } from "../../common/errors/app-error.js";
+import { uploadImageFromUrl } from "../../lib/cloudinary.js";
 import { getIO } from "../socket/socket.js";
 
 export const findDriverByDriverId = async (driverId: string) => {
@@ -140,16 +141,41 @@ export const storeLocation = async (
   return { success: true, message: "📍 Location saved" };
 };
 
+export const uploadProofPhotoToCloudinary = async (
+  fileUrl: string,
+  driverId: string,
+) => {
+  const uploaded = await uploadImageFromUrl(
+    fileUrl,
+    `logiflow/proof-photos/${driverId}`,
+  );
+
+  return {
+    cloudinaryAssetId: uploaded.asset_id,
+    cloudinaryPublicId: uploaded.public_id,
+    cloudinaryUrl: uploaded.secure_url,
+    cloudinaryFormat: uploaded.format,
+    cloudinaryBytes: uploaded.bytes,
+  };
+};
+
 export const storeProofPhoto = async (
   shipmentObjectId: string,
-  fileId: string,
+  proofPhoto: {
+    telegramFileId: string;
+    cloudinaryAssetId?: string;
+    cloudinaryPublicId: string;
+    cloudinaryUrl: string;
+    cloudinaryFormat?: string;
+    cloudinaryBytes?: number;
+  },
 ) => {
   const db = mongoose.connection.db;
   if (!db) throw new AppError(500, "Database connection not ready");
 
   const proofEvent = {
     type: "proof_photo",
-    telegramFileId: fileId,
+    ...proofPhoto,
     timestamp: new Date(),
   };
 

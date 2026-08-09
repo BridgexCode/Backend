@@ -37,6 +37,7 @@ const mapShipmentResponse = (doc: any): ShipmentResponse => ({
   expectedDeliveryDate: doc.expectedDeliveryDate,
   statusLifecycle: doc.statusLifecycle,
   timeline: doc.timeline || [],
+  proofPhotos: doc.proofPhotos || [],
   notes: doc.notes || "",
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
